@@ -8,11 +8,9 @@ const AdminCoursesPage = () => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(location.pathname === '/admin/courses/create');
-
-  // Form state
   const [formData, setFormData] = useState({
     title: '',
-    image: '', // Will store the Cloudinary URL after upload
+    image: '',
     description: '',
     syllabus: '',
     teacher: '',
@@ -21,11 +19,6 @@ const AdminCoursesPage = () => {
     endDate: '',
     telegramLink: '',
   });
-
-  // Image upload state
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [uploading, setUploading] = useState(false);
 
   const adminApi = createAdminApi();
 
@@ -49,116 +42,12 @@ const AdminCoursesPage = () => {
     }
   };
 
-  /**
-   * Handle file selection from file picker
-   */
-  const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-
-    if (!file) return;
-
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-    if (!validTypes.includes(file.type)) {
-      alert('Please select a valid image file (JPG, JPEG, or PNG)');
-      return;
-    }
-
-    // Validate file size (2MB max)
-    const maxSize = 2 * 1024 * 1024; // 2MB in bytes
-    if (file.size > maxSize) {
-      alert('Image size must be less than 2MB');
-      return;
-    }
-
-    // Store file
-    setSelectedFile(file);
-
-    // Create preview URL
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result);
-    };
-    reader.readAsDataURL(file);
-
-    console.log('✅ Image selected:', file.name, `${(file.size / 1024).toFixed(2)} KB`);
-  };
-
-  /**
-   * Remove selected image
-   */
-  const handleRemoveImage = () => {
-    setSelectedFile(null);
-    setImagePreview(null);
-    setFormData({ ...formData, image: '' });
-  };
-
-  /**
-   * Upload image to backend before creating course
-   */
-  const uploadImage = async () => {
-    if (!selectedFile) {
-      throw new Error('No image selected');
-    }
-
-    setUploading(true);
-
-    try {
-      // Create FormData
-      const formDataObj = new FormData();
-      formDataObj.append('image', selectedFile);
-      formDataObj.append('folder', 'courses');
-
-      console.log('📤 Uploading image to server...');
-
-      // Upload to backend
-      const response = await adminApi.post('/admin/upload/image', formDataObj, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      const imageUrl = response.data.data.url;
-      console.log('✅ Image uploaded successfully:', imageUrl);
-
-      return imageUrl;
-    } catch (error) {
-      console.error('❌ Image upload failed:', error);
-      throw new Error('Failed to upload image');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  /**
-   * Handle course creation
-   */
   const handleCreate = async (e) => {
     e.preventDefault();
-
-    // Check if image is selected
-    if (!selectedFile) {
-      alert('Please select a course image');
-      return;
-    }
-
     try {
-      // Step 1: Upload image first
-      console.log('📸 Step 1: Uploading image...');
-      const imageUrl = await uploadImage();
-
-      // Step 2: Create course with uploaded image URL
-      console.log('📝 Step 2: Creating course...');
-      const courseData = {
-        ...formData,
-        image: imageUrl,
-      };
-
-      await adminApi.post('/admin/courses', courseData);
-
+      console.log('Submitting course data:', formData);
+      await adminApi.post('/admin/courses', formData);
       alert('Course created successfully!');
-
-      // Reset form
       setFormData({
         title: '',
         image: '',
@@ -170,18 +59,16 @@ const AdminCoursesPage = () => {
         endDate: '',
         telegramLink: '',
       });
-      setSelectedFile(null);
-      setImagePreview(null);
-
       navigate('/admin/courses');
       fetchCourses();
     } catch (error) {
       console.error('Error creating course:', error);
+      console.error('Error response:', error.response?.data);
 
       // Show detailed error message
       const errorMsg = error.response?.data?.details
         ? error.response.data.details.map(d => `${d.field}: ${d.message}`).join('\n')
-        : error.message || error.response?.data?.message || 'Failed to create course. Please try again.';
+        : error.response?.data?.message || 'Failed to create course. Please try again.';
 
       alert('Failed to create course:\n\n' + errorMsg);
     }
@@ -255,81 +142,18 @@ const AdminCoursesPage = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
-
-                {/* IMAGE UPLOAD SECTION - COMPLETELY NEW */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Course Image *
+                    Image URL
                   </label>
-
-                  {!imagePreview ? (
-                    // File input button
-                    <div className="relative">
-                      <input
-                        type="file"
-                        id="image-upload"
-                        accept="image/jpeg,image/jpg,image/png"
-                        onChange={handleFileSelect}
-                        className="hidden"
-                      />
-                      <label
-                        htmlFor="image-upload"
-                        className="flex items-center justify-center w-full px-4 py-8 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"
-                      >
-                        <div className="text-center">
-                          <svg
-                            className="mx-auto h-12 w-12 text-gray-400"
-                            stroke="currentColor"
-                            fill="none"
-                            viewBox="0 0 48 48"
-                          >
-                            <path
-                              d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                              strokeWidth={2}
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          </svg>
-                          <p className="mt-2 text-sm text-gray-600">
-                            <span className="font-semibold text-blue-600">Click to upload</span> or drag and drop
-                          </p>
-                          <p className="mt-1 text-xs text-gray-500">
-                            PNG, JPG, JPEG up to 2MB
-                          </p>
-                        </div>
-                      </label>
-                    </div>
-                  ) : (
-                    // Image preview
-                    <div className="relative">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="w-full h-48 object-cover rounded-lg border-2 border-gray-300"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleRemoveImage}
-                        className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors shadow-lg"
-                        title="Remove image"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                      <div className="mt-2 flex items-center justify-between text-sm">
-                        <span className="text-green-600 font-medium">✓ Image selected</span>
-                        <label
-                          htmlFor="image-upload"
-                          className="text-blue-600 hover:text-blue-700 cursor-pointer font-medium"
-                        >
-                          Change image
-                        </label>
-                      </div>
-                    </div>
-                  )}
+                  <input
+                    type="url"
+                    required
+                    value={formData.image}
+                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
                 </div>
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Teacher Name
@@ -419,10 +243,9 @@ const AdminCoursesPage = () => {
               <div className="flex gap-4">
                 <button
                   type="submit"
-                  disabled={uploading || !selectedFile}
-                  className="bg-blue-600 text-white px-8 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-blue-600 text-white px-8 py-2 rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  {uploading ? 'Uploading...' : 'Create Course'}
+                  Create Course
                 </button>
                 <Link
                   to="/admin/courses"
@@ -483,33 +306,30 @@ const AdminCoursesPage = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{course.teacher}</div>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {course.teacher}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">₹{course.price}</div>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      ₹{course.price}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-500">
-                        {new Date(course.startDate).toLocaleDateString()} -{' '}
-                        {new Date(course.endDate).toLocaleDateString()}
-                      </div>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(course.start_date).toLocaleDateString()} - {new Date(course.end_date).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          course.isActive
+                        className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          course.is_active
                             ? 'bg-green-100 text-green-800'
                             : 'bg-red-100 text-red-800'
                         }`}
                       >
-                        {course.isActive ? 'Active' : 'Inactive'}
+                        {course.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
                         onClick={() => handleDelete(course.id)}
-                        className="text-red-600 hover:text-red-900"
+                        className="text-red-600 hover:text-red-900 ml-4"
                       >
                         Delete
                       </button>

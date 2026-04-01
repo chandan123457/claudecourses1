@@ -6,11 +6,16 @@ import {
   validateWebinar,
 } from '../controllers/adminController';
 import { isAdmin } from '../middlewares/auth';
+import { uploadSingle } from '../middlewares/upload';
+import imageController from '../controllers/imageController';
 
 const router = express.Router();
 
 // Admin authentication routes (no auth required for login)
 router.post('/login', validateAdminLogin, adminController.login);
+
+// Image upload route (protected with admin auth)
+router.post('/upload/image', isAdmin, uploadSingle, imageController.uploadImage);
 
 // Protected admin routes (require admin key)
 router.get('/dashboard/stats', isAdmin, adminController.getDashboardStats);
