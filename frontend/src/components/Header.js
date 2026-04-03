@@ -64,10 +64,10 @@ const Header = () => {
         <div className="hidden lg:flex items-center space-x-8 font-medium text-sm">
           <a className="hover:text-primary transition-colors cursor-pointer" onClick={(e) => handleClick(e, '#about')}>About</a>
           <a className="hover:text-primary transition-colors cursor-pointer" onClick={(e) => handleClick(e, '#certifications')}>Certifications</a>
-          <a className="hover:text-primary transition-colors cursor-pointer" onClick={(e) => handleClick(e, '#training')}>Training Programs</a>
-          <a className="hover:text-primary transition-colors cursor-pointer" onClick={(e) => handleClick(e, '#interviews')}>Interviews</a>
+            <a className="hover:text-primary transition-colors cursor-pointer" onClick={(e) => handleClick(e, '#training')}>Training Programs</a>
+
           <a className="hover:text-primary transition-colors cursor-pointer" onClick={(e) => handleClick(e, '#placement')}>Placement</a>
-          <Link to="/courses" className="hover:text-primary transition-colors cursor-pointer">Training Programs</Link>
+          <Link to="/courses" className="hover:text-primary transition-colors cursor-pointer">Training Courses</Link>
           <Link to="/webinars" className="hover:text-primary transition-colors cursor-pointer">Webinars</Link>
         </div>
         <div className="flex items-center gap-4">

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../config/api';
+import { useAuth } from '../contexts/AuthContext';
 
 const CoursesPage = () => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { currentUser } = useAuth();
 
   useEffect(() => {
     fetchCourses();
@@ -115,11 +117,9 @@ const CoursesPage = () => {
                       </span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-[#0F1A2E]/50 font-medium">Duration</span>
+                      <span className="text-[#0F1A2E]/50 font-medium">End Date</span>
                       <span className="font-semibold text-[#0F1A2E]">
-                        {course.startDate && course.endDate 
-                          ? `${Math.ceil((new Date(course.endDate) - new Date(course.startDate)) / (1000 * 60 * 60 * 24 * 7))} weeks`
-                          : 'TBA'}
+                        {course.endDate ? formatDate(course.endDate) : 'TBA'}
                       </span>
                     </div>
                   </div>
@@ -129,7 +129,7 @@ const CoursesPage = () => {
                     to={`/courses/${course.id}`}
                     className="block w-full bg-[#0F1A2E] text-white text-center py-4 rounded-xl font-bold hover:bg-[#E4B61A] hover:text-[#0F1A2E] transition-all duration-300 shadow-lg hover:shadow-xl"
                   >
-                    View Program Details
+                    {currentUser ? "View Program Details" : "Enroll Now"}
                   </Link>
                 </div>
               </div>

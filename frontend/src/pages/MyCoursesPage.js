@@ -22,8 +22,12 @@ const MyCoursesPage = () => {
 
   const fetchUserData = async () => {
     try {
-      const coursesResponse = await api.get('/courses');
+      const [coursesResponse, enrolledResponse] = await Promise.all([
+        api.get('/courses'),
+        api.get('/users/courses/enrolled')
+      ]);
       setAllCourses(coursesResponse.data.data || []);
+      setEnrolledCourses(enrolledResponse.data.data || []);
     } catch (error) {
       console.error('Error fetching user data:', error);
     } finally {
@@ -31,9 +35,6 @@ const MyCoursesPage = () => {
     }
   };
 
-  const handleContinueLearning = (courseId) => {
-    navigate(`/courses/${courseId}`);
-  };
 
   const handleBrowseCourses = () => {
     navigate('/courses');
@@ -132,40 +133,25 @@ const MyCoursesPage = () => {
 
           {enrolledCourses.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {enrolledCourses.map((course) => (
-                <div key={course.id} className="group bg-white rounded-2xl shadow-lg overflow-hidden border border-[#0F1A2E]/5 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
-                  <div className="h-48 overflow-hidden relative">
-                    <img
-                      src={course.image}
-                      alt={course.title}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0F1A2E]/70 to-transparent"></div>
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-lg font-bold text-[#0F1A2E] mb-2 group-hover:text-[#E4B61A] transition-colors">{course.title}</h3>
-                    <p className="text-[#0F1A2E]/60 text-sm mb-4">{course.teacher}</p>
-
-                    {/* Progress Bar */}
-                    <div className="mb-4">
-                      <div className="flex justify-between text-sm text-[#0F1A2E]/60 mb-2">
-                        <span>Progress</span>
-                        <span className="font-bold">65%</span>
-                      </div>
-                      <div className="w-full bg-[#E9EAEC] rounded-full h-2">
-                        <div className="bg-[#E4B61A] h-2 rounded-full" style={{width: '65%'}}></div>
-                      </div>
+              {enrolledCourses.map((item) => {
+                  const course = item.course || item;
+                  return (
+                  <div key={course.id || Math.random()} className="group bg-white rounded-2xl shadow-lg overflow-hidden border border-[#0F1A2E]/5 hover:shadow-2xl transition-all duration-500 hover:-translate-y-2">
+                    <div className="h-48 overflow-hidden relative">
+                      <img
+                        src={course.image}
+                        alt={course.title}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0F1A2E]/70 to-transparent"></div>
                     </div>
-
-                    <button
-                      onClick={() => handleContinueLearning(course.id)}
-                      className="w-full bg-[#0F1A2E] text-white py-3 px-4 rounded-xl font-bold hover:bg-[#E4B61A] hover:text-[#0F1A2E] transition-all duration-300"
-                    >
-                      Continue Learning →
-                    </button>
+                    <div className="p-6">
+                      <h3 className="text-lg font-bold text-[#0F1A2E] mb-2 group-hover:text-[#E4B61A] transition-colors">{course.title}</h3>
+                      <p className="text-[#0F1A2E]/60 text-sm mb-4">{course.teacher}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+                })}
             </div>
           ) : (
             <div className="text-center py-16 bg-white rounded-2xl shadow-lg border border-[#0F1A2E]/5">

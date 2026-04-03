@@ -5,7 +5,6 @@ import PlatformEcosystem from '../components/PlatformEcosystem';
 import IndustrialCertification from '../components/IndustrialCertification';
 import TrainingPrograms from '../components/TrainingPrograms';
 import Mentors from '../components/Mentors';
-import MockInterviews from '../components/MockInterviews';
 import PlacementPortal from '../components/PlacementPortal';
 import CareerJourney from '../components/CareerJourney';
 import FeaturedWebinars from '../components/FeaturedWebinars';
@@ -20,7 +19,6 @@ const HomePage = () => {
       <TrainingPrograms />
       <FeaturedWebinars />
       <Mentors />
-      <MockInterviews />
       <PlacementPortal />
       <CareerJourney />
     </>

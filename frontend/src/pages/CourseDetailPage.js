@@ -14,39 +14,31 @@ const CourseDetailPage = () => {
   const [telegramLink, setTelegramLink] = useState('');
 
   useEffect(() => {
-    fetchCourse();
-  }, [id]);
-
-  useEffect(() => {
-    if (course) {
-      checkEnrollment();
-    }
-  }, [course]);
-
-  const fetchCourse = async () => {
-    try {
-      const response = await api.get(`/courses/${id}`);
-      setCourse(response.data.data);
-    } catch (error) {
-      console.error('Error fetching course:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const checkEnrollment = async () => {
-    try {
-      const response = await api.get(`/users/courses/${id}/enrollment`);
-      if (response.data.data.enrolled) {
-        setEnrolled(true);
-        if (course?.telegramLink) {
-          setTelegramLink(course.telegramLink);
+    const fetchCourseData = async () => {
+      setLoading(true);
+      try {
+        const [courseResponse, enrollmentResponse] = await Promise.all([
+          api.get(`/courses/${id}`),
+          api.get(`/users/courses/${id}/enrollment`).catch(() => ({ data: { data: { enrolled: false } } }))
+        ]);
+        
+        const courseData = courseResponse.data.data;
+        setCourse(courseData);
+        
+        const isEnrolled = enrollmentResponse.data?.data?.enrolled || false;
+        setEnrolled(isEnrolled);
+        if (isEnrolled && courseData?.telegramLink) {
+          setTelegramLink(courseData.telegramLink);
         }
+      } catch (error) {
+        console.error('Error fetching course data:', error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      // User not enrolled
-    }
-  };
+    };
+    
+    fetchCourseData();
+  }, [id]);
 
   const handleEnroll = async () => {
     if (!razorpayLoaded) {
