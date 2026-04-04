@@ -349,11 +349,6 @@ const AuthPage = () => {
                 className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                 placeholder="+918252188485"
               />
-              <p className="mt-2 text-xs text-gray-500">
-                📌 Format: +[country code][number]<br/>
-                🇮🇳 India: +91XXXXXXXXXX<br/>
-                🇺🇸 USA: +1XXXXXXXXXX
-              </p>
             </div>
 
             <div className="flex gap-3">
@@ -369,7 +364,7 @@ const AuthPage = () => {
                 disabled={loading}
                 className="flex-1 py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
-                {loading ? '📤 Sending...' : '📤 Send OTP'}
+                {loading ? ' Sending...' : ' Send OTP'}
               </button>
             </div>
           </form>
