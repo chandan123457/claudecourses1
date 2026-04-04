@@ -33,8 +33,7 @@ import api from '../config/api';
 const AuthPage = () => {
   const navigate = useNavigate();
 
-  // Get authentication methods from context
-  const { signInWithPhoneNumber, signIn } = useAuth();
+  const { signInWithPhoneNumber, signIn, clearRecaptcha } = useAuth();
 
   // Track which step user is on
   const [step, setStep] = useState('choice'); // choice → phone → otp → signup OR signin
@@ -87,9 +86,10 @@ const AuthPage = () => {
       // Format phone number to E.164 format
       // If user enters: 8252188485 → converts to: +918252188485
       // If user enters: +918252188485 → keeps as is
-      const formattedPhone = phoneNumber.startsWith('+')
-        ? phoneNumber
-        : `+91${phoneNumber}`;
+      const cleaned = phoneNumber.replace(/\s+/g, '').replace(/-/g, '');
+      const formattedPhone = cleaned.startsWith('+')
+        ? cleaned
+        : `+91${cleaned}`;
 
       console.log('📱 Sending OTP to:', formattedPhone);
 
@@ -411,6 +411,7 @@ const AuthPage = () => {
             <button
               type="button"
               onClick={() => {
+                clearRecaptcha();
                 setStep('phone');
                 setOtp('');
                 setError('');

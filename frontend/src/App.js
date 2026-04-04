@@ -24,7 +24,6 @@ function App() {
       <AuthProvider>
         <AdminProvider>
           <div className="App">
-            <div id="recaptcha-container"></div>
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={
