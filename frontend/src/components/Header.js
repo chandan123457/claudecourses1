@@ -90,7 +90,7 @@ const Header = () => {
             Home
           </a>
           <Link to="/courses" className="hover:text-primary transition-all duration-200 cursor-pointer">
-            Training Courses
+            Training Programs
           </Link>
           <Link to="/webinars" className="hover:text-primary transition-all duration-200 cursor-pointer">
             Webinars
@@ -199,7 +199,7 @@ const Header = () => {
             className="flex items-center text-lg font-bold text-gray-800 hover:text-primary hover:translate-x-2 transition-all cursor-pointer"
             onClick={() => setIsMobileMenuOpen(false)}
           >
-            Training Courses
+            Training Programs
           </Link>
           <div className="h-[1px] w-full bg-gray-100" />
           <Link 
