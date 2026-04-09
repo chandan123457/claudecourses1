@@ -16,7 +16,7 @@ export const webinarService = {
         image: data.image,
         description: data.description,
         teacher: data.teacher,
-        date: new Date(data.date),
+        date: new Date(data.date).toISOString(),
         time: data.time,
       },
     });
@@ -62,7 +62,7 @@ export const webinarService = {
     if (data.image !== undefined) updateData.image = data.image;
     if (data.description !== undefined) updateData.description = data.description;
     if (data.teacher !== undefined) updateData.teacher = data.teacher;
-    if (data.date !== undefined) updateData.date = new Date(data.date);
+    if (data.date !== undefined) updateData.date = new Date(data.date).toISOString();
     if (data.time !== undefined) updateData.time = data.time;
     if (data.is_active !== undefined) updateData.isActive = data.is_active;
 

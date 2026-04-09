@@ -1,3 +1,4 @@
+import axios from 'axios';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../config/api';
 
@@ -80,7 +81,7 @@ export const AdminProvider = ({ children }) => {
 
 // Create admin API instance with token
 export const createAdminApi = () => {
-  const adminApi = api.create();
+  const adminApi = axios.create({ baseURL: process.env.REACT_APP_API_URL || "http://localhost:5000/api" });
 
   // Add admin token to requests
   adminApi.interceptors.request.use(

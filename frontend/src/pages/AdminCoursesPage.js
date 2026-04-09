@@ -107,7 +107,13 @@ const AdminCoursesPage = () => {
 
     try {
       const imageUrl = await uploadImage();
-      const courseData = { ...formData, image: imageUrl };
+      const courseData = { 
+        ...formData, 
+        image: imageUrl,
+        start_date: formData.startDate,
+        end_date: formData.endDate,
+        telegram_link: formData.telegramLink 
+      };
       await adminApi.post('/admin/courses', courseData);
 
       alert('Course created successfully!');
@@ -550,7 +556,7 @@ const AdminCoursesPage = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                         <span>
-                          {new Date(course.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(course.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          {course.startDate ? new Date(course.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBA'} - {course.endDate ? new Date(course.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'TBA'}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">

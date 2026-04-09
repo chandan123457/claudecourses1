@@ -81,6 +81,9 @@ const WebinarsPage = () => {
                     {webinar.description}
                   </p>
                   <div className="border-t border-gray-200 pt-4 mb-4">
+                    <p className="text-sm font-semibold text-[#E4B61A] mb-3 text-center bg-yellow-50 p-2 rounded">
+                      1 student will be selected as a teaching assistant based on performance
+                    </p>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm text-gray-500">Instructor</span>
                       <span className="text-sm font-semibold text-gray-800">{webinar.teacher}</span>

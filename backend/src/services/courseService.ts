@@ -21,8 +21,8 @@ export const courseService = {
         syllabus: data.syllabus,
         teacher: data.teacher,
         price: data.price,
-        startDate: new Date(data.start_date),
-        endDate: new Date(data.end_date),
+        startDate: new Date(data.start_date).toISOString(),
+        endDate: new Date(data.end_date).toISOString(),
         telegramLink: data.telegram_link || null,
       },
     });
@@ -70,8 +70,8 @@ export const courseService = {
     if (data.syllabus !== undefined) updateData.syllabus = data.syllabus;
     if (data.teacher !== undefined) updateData.teacher = data.teacher;
     if (data.price !== undefined) updateData.price = data.price;
-    if (data.start_date !== undefined) updateData.startDate = new Date(data.start_date);
-    if (data.end_date !== undefined) updateData.endDate = new Date(data.end_date);
+    if (data.start_date !== undefined) updateData.startDate = new Date(data.start_date).toISOString();
+    if (data.end_date !== undefined) updateData.endDate = new Date(data.end_date).toISOString();
     if (data.telegram_link !== undefined) updateData.telegramLink = data.telegram_link;
     if (data.is_active !== undefined) updateData.isActive = data.is_active;
 

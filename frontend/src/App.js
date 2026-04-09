@@ -15,6 +15,7 @@ import MyCoursesPage from './pages/MyCoursesPage';
 import AdminLoginPage from './pages/AdminLoginPage';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminCoursesPage from './pages/AdminCoursesPage';
+import AdminWebinarsPage from './pages/AdminWebinarsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 
@@ -131,6 +132,22 @@ function App() {
                 element={
                   <AdminProtectedRoute>
                     <AdminCoursesPage />
+                  </AdminProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/webinars"
+                element={
+                  <AdminProtectedRoute>
+                    <AdminWebinarsPage />
+                  </AdminProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/webinars/create"
+                element={
+                  <AdminProtectedRoute>
+                    <AdminWebinarsPage />
                   </AdminProtectedRoute>
                 }
               />
