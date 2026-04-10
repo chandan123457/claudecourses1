@@ -99,6 +99,8 @@ export const AuthProvider = ({ children }) => {
 
   const signInWithPhoneNumber = async (phoneNumber) => {
     try {
+      // Always clear previous recaptcha to avoid reusing a consumed verifier
+      clearRecaptcha();
       const recaptchaVerifier = setupRecaptcha('recaptcha-container');
       const confirmationResult = await firebaseSignInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
       return confirmationResult;

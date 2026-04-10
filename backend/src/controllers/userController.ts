@@ -12,12 +12,33 @@ export const userController = {
       throw new AppError('Firebase UID, name, and email are required', 400);
     }
 
-    const user = await userService.createUser(firebaseUid, phone || '', name, email);
+    try {
+      const user = await userService.createUser(firebaseUid, phone || '', name, email);
 
-    res.status(201).json({
+      res.status(201).json({
+        success: true,
+        message: 'User created successfully',
+        data: user,
+      });
+    } catch (err: any) {
+      // Handle Prisma unique constraint violation (e.g. duplicate email)
+      if (err.code === 'P2002') {
+        const field = err.meta?.target?.[0] || 'field';
+        throw new AppError(`An account with this ${field} already exists. Please sign in instead.`, 409);
+      }
+      throw err;
+    }
+  }),
+
+  // Check if a phone number is already registered
+  checkPhone: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const { phone } = req.params;
+
+    const user = await userService.getUserByPhone(phone);
+
+    res.status(200).json({
       success: true,
-      message: 'User created successfully',
-      data: user,
+      exists: !!user,
     });
   }),
 

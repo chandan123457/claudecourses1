@@ -95,6 +95,20 @@ export const userService = {
     return user;
   },
 
+  // Check if a phone number is already registered
+  async getUserByPhone(phone: string) {
+    const user = await prisma.user.findFirst({
+      where: { phone },
+      select: {
+        id: true,
+        phone: true,
+        name: true,
+        email: true,
+      },
+    });
+    return user;
+  },
+
   // Get user by email
   async getUserByEmail(email: string) {
     const user = await prisma.user.findUnique({

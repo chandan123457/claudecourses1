@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth } from '../config/firebase';
 import api from '../config/api';
 
@@ -91,7 +91,23 @@ const AuthPage = () => {
         ? cleaned
         : `+91${cleaned}`;
 
+      // Check if this phone number is already registered in our backend.
+      // If so, the user should sign in instead of creating a new account.
+      try {
+        const checkRes = await api.get(`/users/check-phone/${encodeURIComponent(formattedPhone)}`);
+        if (checkRes.data.exists) {
+          setError('This phone number is already registered. Please sign in instead.');
+          setLoading(false);
+          return;
+        }
+      } catch (_) {
+        // If the check endpoint fails, continue with the OTP flow
+      }
+
       console.log('📱 Sending OTP to:', formattedPhone);
+
+      // Store the formatted phone so handleSignup uses the correct value
+      setPhoneNumber(formattedPhone);
 
       // Call Firebase signInWithPhoneNumber()
       // This will:
@@ -117,6 +133,8 @@ const AuthPage = () => {
         setError('Too many attempts. Please try again later.');
       } else if (err.code === 'auth/quota-exceeded') {
         setError('SMS quota exceeded. Contact support.');
+      } else if (err.code === 'auth/account-exists-with-different-credential') {
+        setError('This phone number is already linked to another account. Please sign in instead.');
       } else {
         setError(err.message || 'Failed to send OTP. Please try again.');
       }
@@ -146,9 +164,23 @@ const AuthPage = () => {
 
       // Verify OTP with Firebase
       // confirmationResult.confirm() returns a UserCredential if valid
-      await confirmationResult.confirm(otp);
+      const result = await confirmationResult.confirm(otp);
 
       console.log('✅ OTP verified successfully!');
+
+      // Delete the temporary phone-based Firebase user.
+      // Phone is ONLY used for verification — the real account will be
+      // email/password. Leaving this phone user around causes
+      // "user already exists" errors on re-attempts with the same number.
+      try {
+        await result.user.delete();
+        console.log('🗑️ Temporary phone user cleaned up');
+      } catch (deleteErr) {
+        // If delete fails (e.g. token expired), sign out instead so the
+        // phone user doesn't pollute auth state during signup.
+        console.warn('Could not delete phone user, signing out instead:', deleteErr.message);
+        await firebaseSignOut(auth);
+      }
 
       // OTP is valid - move to signup form
       setStep('signup');
@@ -189,6 +221,13 @@ const AuthPage = () => {
 
     try {
       console.log('📝 Creating user account...');
+
+      // Ensure no leftover phone user is signed in.
+      // The phone user should already be deleted in handleVerifyOTP,
+      // but guard against edge cases (e.g. delete failed, page refreshed).
+      if (auth.currentUser) {
+        await firebaseSignOut(auth);
+      }
 
       // Create Firebase user with Email and Password
       // This creates a new user in Firebase Authentication
@@ -232,7 +271,9 @@ const AuthPage = () => {
       } else if (err.code === 'auth/invalid-email') {
         setError('Invalid email address.');
       } else {
-        setError(err.message || 'Failed to create account. Please try again.');
+        // Surface backend errors (e.g. email unique constraint) clearly
+        const msg = err.response?.data?.message || err.message || 'Failed to create account. Please try again.';
+        setError(msg);
       }
     } finally {
       setLoading(false);

@@ -6,6 +6,7 @@ const router = express.Router();
 
 // Public routes
 router.post('/create', validateCreateUser, userController.createUser);
+router.get('/check-phone/:phone', userController.checkPhone);
 router.get('/:firebaseUid', userController.getUserByFirebaseUid);
 
 // Protected routes (require authentication via Firebase UID header)
