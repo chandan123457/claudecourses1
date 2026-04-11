@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { createUserWithEmailAndPassword, updateProfile, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth } from '../config/firebase';
@@ -32,11 +32,14 @@ import api from '../config/api';
 
 const AuthPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const { signInWithPhoneNumber, signIn, clearRecaptcha } = useAuth();
 
-  // Track which step user is on
-  const [step, setStep] = useState('choice'); // choice → phone → otp → signup OR signin
+  // Start directly on signin step if ?mode=signin is present (e.g. from header Sign In button)
+  const [step, setStep] = useState(
+    searchParams.get('mode') === 'signin' ? 'signin' : 'choice'
+  ); // choice → phone → otp → signup OR signin
 
   // Store phone number for later use in signup
   const [phoneNumber, setPhoneNumber] = useState('');

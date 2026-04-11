@@ -153,7 +153,7 @@ const Header = () => {
             </div>
           ) : (
             <Link
-              to="/auth"
+              to="/auth?mode=signin"
               className="bg-primary text-[#0F1A2E] px-4 py-2 sm:px-6 sm:py-2.5 rounded-full font-bold text-xs sm:text-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 active:scale-95 whitespace-nowrap"
             >
               Sign In

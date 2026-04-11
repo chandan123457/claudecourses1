@@ -30,7 +30,7 @@ function App() {
               <Route path="/" element={
                 <>
                   <Header />
-                  <main className="pt-16">
+                  <main>
                     <HomePage />
                   </main>
                   <Footer />
@@ -39,17 +39,16 @@ function App() {
               <Route path="/auth" element={
                 <>
                   <Header />
-                  <main className="pt-16">
+                  <main>
                     <AuthPage />
                   </main>
-                  <Footer />
                 </>
               } />
               {/* Training Programs page - NO footer */}
               <Route path="/courses" element={
                 <>
                   <Header />
-                  <main className="pt-16">
+                  <main>
                     <CoursesPage />
                   </main>
                 </>
@@ -57,7 +56,7 @@ function App() {
               <Route path="/webinars" element={
                 <>
                   <Header />
-                  <main className="pt-16">
+                  <main>
                     <WebinarsPage />
                   </main>
                   <Footer />
@@ -73,7 +72,7 @@ function App() {
                 <ProtectedRoute>
                   <>
                     <Header />
-                    <main className="pt-16">
+                    <main>
                       <MyCoursesPage />
                     </main>
                   </>
@@ -87,7 +86,7 @@ function App() {
                   <ProtectedRoute>
                     <>
                       <Header />
-                      <main className="pt-16">
+                      <main>
                         <CourseDetailPage />
                       </main>
                     </>
@@ -100,7 +99,7 @@ function App() {
                   <ProtectedRoute>
                     <>
                       <Header />
-                      <main className="pt-16">
+                      <main>
                         <WebinarDetailPage />
                       </main>
                       <Footer />

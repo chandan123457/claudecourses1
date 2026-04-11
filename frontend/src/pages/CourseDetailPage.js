@@ -95,6 +95,12 @@ const CourseDetailPage = () => {
         theme: {
           color: '#0F1A2E',
         },
+        modal: {
+          // Reset button state when user closes/cancels the payment modal
+          ondismiss: () => {
+            setEnrolling(false);
+          },
+        },
       };
 
       const rzp = new window.Razorpay(options);
