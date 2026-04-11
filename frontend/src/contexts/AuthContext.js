@@ -74,11 +74,29 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const clearRecaptcha = () => {
+    // 1. Clear Firebase's RecaptchaVerifier wrapper
     if (recaptchaVerifierRef.current) {
       try {
         recaptchaVerifierRef.current.clear();
       } catch (_) {}
       recaptchaVerifierRef.current = null;
+    }
+
+    // 2. Reset Google's own reCAPTCHA widget registry —
+    //    this is what actually prevents the "already rendered" error
+    if (window.grecaptcha) {
+      try {
+        window.grecaptcha.reset();
+      } catch (_) {}
+    }
+
+    // 3. Replace the container DOM element entirely so Google's reCAPTCHA
+    //    cannot match it to any previously registered widget by reference
+    const container = document.getElementById('recaptcha-container');
+    if (container) {
+      const fresh = document.createElement('div');
+      fresh.id = 'recaptcha-container';
+      container.parentNode.replaceChild(fresh, container);
     }
   };
 

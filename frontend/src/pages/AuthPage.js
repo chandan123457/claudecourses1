@@ -348,6 +348,10 @@ const AuthPage = () => {
           </p>
         </div>
 
+        {/* Always-mounted reCAPTCHA container — must never unmount.
+            clearRecaptcha() replaces this element with a fresh one on each retry. */}
+        <div id="recaptcha-container"></div>
+
         {/* Error Message */}
         {error && (
           <div className="bg-red-100 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded relative">
