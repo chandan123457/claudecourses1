@@ -339,11 +339,11 @@ const AuthPage = () => {
   // UI RENDER
   // ============================================================================
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-surface py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-2xl shadow-2xl">
         {/* Header */}
         <div>
-          <h2 className="text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="text-center text-3xl font-extrabold text-secondary">
             {step === 'choice' && 'Welcome to GradToPro'}
             {step === 'phone' && 'Verify Your Phone Number'}
             {step === 'otp' && 'Enter Verification Code'}
@@ -375,15 +375,15 @@ const AuthPage = () => {
           <div className="space-y-4">
             <button
               onClick={() => setStep('phone')}
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-all"
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold bg-primary text-secondary hover:bg-primary/90 transition-all"
             >
-              📱 Create New Account
+              Create New Account
             </button>
             <button
               onClick={() => setStep('signin')}
               className="w-full flex justify-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all"
             >
-              🔑 Already Have an Account? Sign In
+              Already Have an Account? Sign In
             </button>
           </div>
         )}
@@ -402,8 +402,8 @@ const AuthPage = () => {
                 required
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
-                className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                placeholder="+918252188485"
+                className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm"
+                placeholder="+91"
               />
             </div>
 
@@ -418,7 +418,7 @@ const AuthPage = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="flex-1 py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold bg-primary text-secondary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 {loading ? ' Sending...' : ' Send OTP'}
               </button>
@@ -442,21 +442,21 @@ const AuthPage = () => {
                 pattern="[0-9]{6}"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
-                className="appearance-none relative block w-full px-4 py-4 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-center text-3xl tracking-widest font-bold"
+                className="appearance-none relative block w-full px-4 py-4 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-center text-3xl tracking-widest font-bold"
                 placeholder="000000"
                 autoComplete="one-time-code"
               />
               <p className="mt-2 text-xs text-gray-500 text-center">
-                📱 Check your phone for the 6-digit code
+                Check your phone for the 6-digit code
               </p>
             </div>
 
             <button
               type="submit"
               disabled={loading || otp.length !== 6}
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold bg-primary text-secondary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-              {loading ? '🔐 Verifying...' : '🔐 Verify OTP'}
+              {loading ? 'Verifying...' : 'Verify OTP'}
             </button>
 
             <button
@@ -467,7 +467,7 @@ const AuthPage = () => {
                 setOtp('');
                 setError('');
               }}
-              className="w-full text-sm text-indigo-600 hover:text-indigo-700 hover:underline"
+              className="w-full text-sm text-secondary/60 hover:text-secondary hover:underline"
             >
               ← Didn't receive code? Try again
             </button>
@@ -495,7 +495,7 @@ const AuthPage = () => {
                   required
                   value={signupData.name}
                   onChange={(e) => setSignupData({ ...signupData, name: e.target.value })}
-                  className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                   placeholder="John Doe"
                 />
               </div>
@@ -511,11 +511,11 @@ const AuthPage = () => {
                   required
                   value={signupData.email}
                   onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
-                  className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                   placeholder="john@example.com"
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  📧 Use this email to sign in later
+                  Use this email to sign in later
                 </p>
               </div>
 
@@ -531,11 +531,11 @@ const AuthPage = () => {
                   minLength="6"
                   value={signupData.password}
                   onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                  className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                   placeholder="••••••••"
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  🔒 Minimum 6 characters
+                  Minimum 6 characters
                 </p>
               </div>
             </div>
@@ -543,9 +543,9 @@ const AuthPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold bg-primary text-secondary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-              {loading ? '🚀 Creating Account...' : '🚀 Create Account'}
+              {loading ? 'Creating Account...' : 'Create Account'}
             </button>
           </form>
         )}
@@ -565,7 +565,7 @@ const AuthPage = () => {
                   required
                   value={signinData.email}
                   onChange={(e) => setSigninData({ ...signinData, email: e.target.value })}
-                  className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                   placeholder="john@example.com"
                 />
               </div>
@@ -581,7 +581,7 @@ const AuthPage = () => {
                   required
                   value={signinData.password}
                   onChange={(e) => setSigninData({ ...signinData, password: e.target.value })}
-                  className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
                   placeholder="••••••••"
                 />
               </div>
@@ -590,9 +590,9 @@ const AuthPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="w-full py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-bold bg-primary text-secondary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-              {loading ? '🔑 Signing In...' : '🔑 Sign In'}
+              {loading ? 'Signing In...' : 'Sign In'}
             </button>
 
             <p className="text-center text-sm text-gray-600">
@@ -600,7 +600,7 @@ const AuthPage = () => {
               <button
                 type="button"
                 onClick={() => setStep('phone')}
-                className="text-indigo-600 hover:text-indigo-700 font-medium hover:underline"
+                className="text-secondary font-semibold hover:text-primary hover:underline"
               >
                 Create one now
               </button>

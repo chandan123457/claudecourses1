@@ -21,29 +21,16 @@ const Header = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleClick = (e, targetId) => {
+  const handleHomeClick = (e) => {
     e.preventDefault();
-    setIsMobileMenuOpen(false); // Close mobile menu when a link is clicked
-    
+    setIsMobileMenuOpen(false);
     if (isHomePage) {
-      const element = document.querySelector(targetId);
-      if (element) {
-        const headerOffset = 80;
-        const elementPosition = element.getBoundingClientRect().top;
-        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-        window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
-      }
+      window.scrollTo({ top: 0, behavior: 'instant' });
     } else {
       navigate('/');
       setTimeout(() => {
-        const element = document.querySelector(targetId);
-        if (element) {
-          const headerOffset = 80;
-          const elementPosition = element.getBoundingClientRect().top;
-          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-          window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
-        }
-      }, 100);
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      }, 50);
     }
   };
 
@@ -86,7 +73,7 @@ const Header = () => {
         {/* === DESKTOP NAVIGATION (Center) === */}
         {/* lg breakpoint starts at 1024px. Hidden completely below it. */}
         <div className="hidden lg:flex flex-1 items-center justify-center space-x-8 font-medium text-[15px]">
-          <a className="hover:text-primary transition-all duration-200 cursor-pointer" onClick={(e) => handleClick(e, '#about')}>
+          <a className="hover:text-primary transition-all duration-200 cursor-pointer" onClick={handleHomeClick}>
             Home
           </a>
           <Link to="/courses" className="hover:text-primary transition-all duration-200 cursor-pointer">
@@ -187,9 +174,9 @@ const Header = () => {
         }`}
       >
         <div className="container mx-auto px-6 py-6 flex flex-col gap-5">
-          <a 
-            className="flex items-center text-lg font-bold text-gray-800 hover:text-primary hover:translate-x-2 transition-all cursor-pointer" 
-            onClick={(e) => handleClick(e, '#about')}
+          <a
+            className="flex items-center text-lg font-bold text-gray-800 hover:text-primary hover:translate-x-2 transition-all cursor-pointer"
+            onClick={handleHomeClick}
           >
             Home
           </a>
