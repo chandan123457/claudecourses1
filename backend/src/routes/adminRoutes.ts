@@ -18,7 +18,7 @@ router.post('/login', validateAdminLogin, adminController.login);
 router.post('/upload/image', isAdmin, uploadSingle, imageController.uploadImage);
 
 // Protected admin routes (require admin key)
-router.get('/dashboard/stats', isAdmin, adminController.getDashboardStats);
+router.get('/dashboard/stats', isAdmin, adminController.getExtendedStats);
 
 // Course management routes
 router.get('/courses', isAdmin, adminController.getAllCourses);
@@ -31,5 +31,31 @@ router.get('/webinars', isAdmin, adminController.getAllWebinars);
 router.post('/webinars', isAdmin, validateWebinar, adminController.createWebinar);
 router.put('/webinars/:id', isAdmin, validateWebinar, adminController.updateWebinar);
 router.delete('/webinars/:id', isAdmin, adminController.deleteWebinar);
+
+// User management
+router.get('/users', isAdmin, adminController.getAllUsers);
+
+// Program management
+router.get('/programs', isAdmin, adminController.getAllPrograms);
+router.post('/programs', isAdmin, adminController.createProgram);
+router.put('/programs/:id', isAdmin, adminController.updateProgram);
+router.delete('/programs/:id', isAdmin, adminController.deleteProgram);
+
+// Interview management
+router.get('/interviews/sessions', isAdmin, adminController.getAllInterviewSessions);
+router.post('/interviews/sessions', isAdmin, adminController.createInterviewSession);
+router.patch('/interviews/sessions/:id/result', isAdmin, adminController.recordInterviewResult);
+router.get('/interviews/bookings', isAdmin, adminController.getAllInterviewBookings);
+router.patch('/interviews/bookings/:id/confirm', isAdmin, adminController.confirmInterviewBooking);
+
+// Certification management
+router.get('/certifications', isAdmin, adminController.getAllCertifications);
+router.post('/certifications', isAdmin, adminController.assignCertification);
+
+// Eligibility management
+router.post('/eligibility', isAdmin, adminController.setEligibility);
+
+// Skill badge management
+router.post('/skill-badges', isAdmin, adminController.awardSkillBadge);
 
 export default router;

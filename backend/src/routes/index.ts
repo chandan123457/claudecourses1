@@ -4,6 +4,10 @@ import webinarRoutes from './webinarRoutes';
 import courseRoutes from './courseRoutes';
 import paymentRoutes from './paymentRoutes';
 import adminRoutes from './adminRoutes';
+import dashboardRoutes from './dashboardRoutes';
+import programRoutes from './programRoutes';
+import interviewRoutes from './interviewRoutes';
+import profileRoutes from './profileRoutes';
 
 const router = express.Router();
 
@@ -13,6 +17,12 @@ router.use('/webinars', webinarRoutes);
 router.use('/courses', courseRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/admin', adminRoutes);
+
+// Dashboard platform routes
+router.use('/dashboard', dashboardRoutes);
+router.use('/programs', programRoutes);
+router.use('/interviews', interviewRoutes);
+router.use('/profile', profileRoutes);
 
 // Health check
 router.get('/health', (req, res) => {

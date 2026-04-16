@@ -3,6 +3,9 @@ import { body } from 'express-validator';
 import { asyncHandler, AppError, handleValidationErrors } from '../middlewares/errorHandler';
 import { courseService } from '../services/courseService';
 import { webinarService } from '../services/webinarService';
+import { programService } from '../services/programService';
+import { interviewService } from '../services/interviewService';
+import { profileService } from '../services/profileService';
 import logger from '../utils/logger';
 
 // Simple admin authentication (in production, use proper JWT/session based auth)
@@ -189,10 +192,172 @@ export const adminController = {
   // Get all webinars for admin
   getAllWebinars: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const webinars = await webinarService.getAllWebinars();
+    res.status(200).json({ success: true, data: webinars });
+  }),
+
+  // ===================== USER MANAGEMENT =====================
+  getAllUsers: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const { page, limit, search } = req.query;
+    const result = await profileService.getAllUsers({
+      page: page ? parseInt(page as string) : 1,
+      limit: limit ? parseInt(limit as string) : 20,
+      search: search as string,
+    });
+    res.status(200).json({ success: true, ...result });
+  }),
+
+  // ===================== PROGRAM MANAGEMENT =====================
+  getAllPrograms: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const result = await programService.getPrograms({ page: 1, limit: 100 });
+    res.status(200).json({ success: true, data: result.programs });
+  }),
+
+  createProgram: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const data = {
+      title: req.body.title,
+      description: req.body.description,
+      domain: req.body.domain,
+      level: req.body.level,
+      duration: req.body.duration,
+      thumbnail: req.body.thumbnail,
+      instructor: req.body.instructor,
+    };
+    const program = await programService.createProgram(data);
+    logger.info('Program created by admin', { programId: program.id });
+    res.status(201).json({ success: true, message: 'Program created successfully', data: program });
+  }),
+
+  updateProgram: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const id = parseInt(req.params.id);
+    const program = await programService.updateProgram(id, req.body);
+    logger.info('Program updated by admin', { programId: id });
+    res.status(200).json({ success: true, message: 'Program updated successfully', data: program });
+  }),
+
+  deleteProgram: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const id = parseInt(req.params.id);
+    await programService.deleteProgram(id);
+    logger.info('Program deleted by admin', { programId: id });
+    res.status(200).json({ success: true, message: 'Program deleted successfully' });
+  }),
+
+  // ===================== INTERVIEW MANAGEMENT =====================
+  getAllInterviewSessions: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const { page, limit, userId } = req.query;
+    const result = await interviewService.getAllSessions({
+      userId: userId ? parseInt(userId as string) : undefined,
+      page: page ? parseInt(page as string) : 1,
+      limit: limit ? parseInt(limit as string) : 20,
+    });
+    res.status(200).json({ success: true, ...result });
+  }),
+
+  createInterviewSession: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const { userId, topic, interviewer, sessionDate, type } = req.body;
+    const session = await interviewService.createSession({
+      userId: parseInt(userId),
+      topic,
+      interviewer,
+      sessionDate: new Date(sessionDate),
+      type,
+    });
+    logger.info('Interview session created by admin', { sessionId: session.id });
+    res.status(201).json({ success: true, message: 'Session created successfully', data: session });
+  }),
+
+  recordInterviewResult: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const id = parseInt(req.params.id);
+    const { score, rating, feedback, strengths, improvements } = req.body;
+    const session = await interviewService.recordResult(id, { score, rating, feedback, strengths, improvements });
+    res.status(200).json({ success: true, message: 'Result recorded successfully', data: session });
+  }),
+
+  getAllInterviewBookings: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const { status, page, limit } = req.query;
+    const result = await interviewService.getAllBookings({
+      status: status as string,
+      page: page ? parseInt(page as string) : 1,
+      limit: limit ? parseInt(limit as string) : 20,
+    });
+    res.status(200).json({ success: true, ...result });
+  }),
+
+  confirmInterviewBooking: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const id = parseInt(req.params.id);
+    const { sessionLink } = req.body;
+    const booking = await interviewService.confirmBooking(id, sessionLink);
+    res.status(200).json({ success: true, message: 'Booking confirmed', data: booking });
+  }),
+
+  // ===================== CERTIFICATION MANAGEMENT =====================
+  getAllCertifications: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const { page, limit } = req.query;
+    const result = await profileService.getAllCertifications({
+      page: page ? parseInt(page as string) : 1,
+      limit: limit ? parseInt(limit as string) : 20,
+    });
+    res.status(200).json({ success: true, ...result });
+  }),
+
+  assignCertification: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const { userId, programId, title, issuedBy, issuedAt, certificateUrl } = req.body;
+    const cert = await profileService.assignCertification({
+      userId: parseInt(userId),
+      programId: programId ? parseInt(programId) : undefined,
+      title,
+      issuedBy,
+      issuedAt: new Date(issuedAt),
+      certificateUrl,
+    });
+    logger.info('Certification assigned by admin', { certId: cert.id, userId });
+    res.status(201).json({ success: true, message: 'Certification assigned successfully', data: cert });
+  }),
+
+  // ===================== ELIGIBILITY MANAGEMENT =====================
+  setEligibility: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const { userId, status, technicalScore, softSkillScore, overallScore, eligibleTiers } = req.body;
+    const eligibility = await profileService.setEligibility(parseInt(userId), {
+      status,
+      technicalScore: parseFloat(technicalScore),
+      softSkillScore: parseFloat(softSkillScore),
+      overallScore: parseFloat(overallScore),
+      eligibleTiers: eligibleTiers || [],
+    });
+    logger.info('Eligibility updated by admin', { userId });
+    res.status(200).json({ success: true, message: 'Eligibility updated successfully', data: eligibility });
+  }),
+
+  // ===================== SKILL BADGE MANAGEMENT =====================
+  awardSkillBadge: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const { userId, name, category } = req.body;
+    const badge = await profileService.awardSkillBadge(parseInt(userId), name, category);
+    logger.info('Skill badge awarded by admin', { userId, name });
+    res.status(201).json({ success: true, message: 'Skill badge awarded successfully', data: badge });
+  }),
+
+  // Extended dashboard stats
+  getExtendedStats: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const [courses, webinars, programs, users, certifications, interviews] = await Promise.all([
+      courseService.getAllCourses(),
+      webinarService.getAllWebinars(),
+      programService.getPrograms({ page: 1, limit: 100 }),
+      profileService.getAllUsers({ page: 1, limit: 1 }),
+      profileService.getAllCertifications({ page: 1, limit: 1 }),
+      interviewService.getAllSessions({ page: 1, limit: 1 }),
+    ]);
 
     res.status(200).json({
       success: true,
-      data: webinars,
+      data: {
+        totalCourses: courses.length,
+        activeCourses: courses.filter((c: any) => c.isActive).length,
+        totalWebinars: webinars.length,
+        activeWebinars: webinars.filter((w: any) => w.isActive).length,
+        totalPrograms: programs.pagination.total,
+        totalUsers: users.total,
+        totalCertifications: certifications.total,
+        totalInterviews: interviews.total,
+      },
     });
   }),
 };

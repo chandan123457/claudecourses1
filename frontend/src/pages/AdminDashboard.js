@@ -2,6 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAdmin, createAdminApi } from '../contexts/AdminContext';
 
+const SIDEBAR_LINKS = [
+  { label: 'Dashboard', path: '/admin/dashboard', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>, active: true },
+  { label: 'Courses', path: '/admin/courses', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg> },
+  { label: 'Programs', path: '/admin/programs', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg> },
+  { label: 'Webinars', path: '/admin/webinars', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg> },
+  { label: 'Users', path: '/admin/users', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg> },
+  { label: 'Interviews', path: '/admin/interviews', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" /></svg> },
+  { label: 'Certifications', path: '/admin/certifications', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+];
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { adminUser, adminLogout } = useAdmin();
@@ -10,6 +20,10 @@ const AdminDashboard = () => {
     activeCourses: 0,
     totalWebinars: 0,
     activeWebinars: 0,
+    totalPrograms: 0,
+    totalUsers: 0,
+    totalCertifications: 0,
+    totalInterviews: 0,
   });
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -66,42 +80,23 @@ const AdminDashboard = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2">
-          <Link
-            to="/admin/dashboard"
-            className="flex items-center gap-3 px-4 py-3 bg-[#E4B61A]/10 text-[#E4B61A] rounded-xl font-medium transition-all"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-            </svg>
-            {sidebarOpen && <span>Dashboard</span>}
-          </Link>
-
-          <Link
-            to="/admin/courses"
-            className="flex items-center gap-3 px-4 py-3 text-white/60 hover:text-white hover:bg-white/5 rounded-xl font-medium transition-all"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
-            {sidebarOpen && <span>Courses</span>}
-          </Link>
-
-          <Link
-            to="/admin/webinars"
-            className="flex items-center gap-3 px-4 py-3 text-white/60 hover:text-white hover:bg-white/5 rounded-xl font-medium transition-all"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-            {sidebarOpen && <span>Webinars</span>}
-          </Link>
-
-          <div className="pt-4 border-t border-white/5 mt-4">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          {SIDEBAR_LINKS.map((item) => (
             <Link
-              to="/"
-              className="flex items-center gap-3 px-4 py-3 text-white/60 hover:text-white hover:bg-white/5 rounded-xl font-medium transition-all"
+              key={item.path}
+              to={item.path}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${
+                item.active
+                  ? 'bg-[#E4B61A]/10 text-[#E4B61A]'
+                  : 'text-white/60 hover:text-white hover:bg-white/5'
+              }`}
             >
+              {item.icon}
+              {sidebarOpen && <span>{item.label}</span>}
+            </Link>
+          ))}
+          <div className="pt-4 border-t border-white/5 mt-4">
+            <Link to="/" className="flex items-center gap-3 px-4 py-3 text-white/60 hover:text-white hover:bg-white/5 rounded-xl font-medium transition-all">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
               </svg>
@@ -222,6 +217,21 @@ const AdminDashboard = () => {
               <p className="text-4xl font-black text-white mb-1">{stats.activeWebinars}</p>
               <p className="text-white/40 font-medium">Live Webinars</p>
             </div>
+          </div>
+
+          {/* Extended Stats Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+            {[
+              { label: 'Total Programs', value: stats.totalPrograms, color: 'from-teal-500/10', border: 'border-teal-500/20', text: 'text-teal-400' },
+              { label: 'Total Users', value: stats.totalUsers, color: 'from-pink-500/10', border: 'border-pink-500/20', text: 'text-pink-400' },
+              { label: 'Certifications Issued', value: stats.totalCertifications, color: 'from-indigo-500/10', border: 'border-indigo-500/20', text: 'text-indigo-400' },
+              { label: 'Interview Sessions', value: stats.totalInterviews, color: 'from-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-400' },
+            ].map(item => (
+              <div key={item.label} className={`bg-gradient-to-br ${item.color} to-transparent border ${item.border} rounded-2xl p-5`}>
+                <p className={`text-3xl font-black ${item.text} mb-1`}>{item.value}</p>
+                <p className="text-white/40 text-sm font-medium">{item.label}</p>
+              </div>
+            ))}
           </div>
 
           {/* Management Sections */}
@@ -351,6 +361,23 @@ const AdminDashboard = () => {
                 </div>
                 <span className="text-white font-medium text-sm text-center">Analytics</span>
               </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+              {[
+                { label: 'Manage Programs', path: '/admin/programs', emoji: '🎓', color: 'hover:bg-teal-500/10 hover:border-teal-500/30' },
+                { label: 'Manage Users', path: '/admin/users', emoji: '👥', color: 'hover:bg-pink-500/10 hover:border-pink-500/30' },
+                { label: 'Manage Interviews', path: '/admin/interviews', emoji: '💼', color: 'hover:bg-blue-500/10 hover:border-blue-500/30' },
+                { label: 'Certifications', path: '/admin/certifications', emoji: '🏆', color: 'hover:bg-indigo-500/10 hover:border-indigo-500/30' },
+              ].map(item => (
+                <Link key={item.path} to={item.path}
+                  className={`flex flex-col items-center gap-3 p-6 bg-white/5 ${item.color} border border-white/5 rounded-2xl transition-all group`}>
+                  <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span className="text-2xl">{item.emoji}</span>
+                  </div>
+                  <span className="text-white font-medium text-sm text-center">{item.label}</span>
+                </Link>
+              ))}
             </div>
           </div>
         </div>
