@@ -1,18 +1,21 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdmin, createAdminApi } from '../contexts/AdminContext';
 
+const DOMAINS = ['Engineering & Tech', 'Data Science', 'Business Management', 'Product Design', 'Marketing & Growth'];
 const LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
-const EMPTY_FORM = { title: '', description: '', domain: '', level: 'Beginner', duration: '', thumbnail: '', instructor: '', isActive: true };
+const DURATIONS = ['2-4 Weeks', '1-3 Months', '3-6 Months', '6+ Months'];
+
+const EMPTY_FORM = { title: '', description: '', domain: 'Engineering & Tech', level: 'Beginner', duration: '2-4 Weeks', thumbnail: '', instructor: '', isActive: true };
 
 const AdminProgramsPage = () => {
   const navigate = useNavigate();
   const { adminLogout } = useAdmin();
-  const adminApi = useMemo(() => createAdminApi(), []);
+  const adminApi = createAdminApi();
 
   const [programs, setPrograms] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [sidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -20,10 +23,9 @@ const AdminProgramsPage = () => {
   const [error, setError] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
-  const domainSuggestions = [...new Set(programs.map((program) => program.domain).filter(Boolean))];
-  const durationSuggestions = [...new Set(programs.map((program) => program.duration).filter(Boolean))];
+  useEffect(() => { fetchPrograms(); }, []);
 
-  const fetchPrograms = useCallback(async () => {
+  const fetchPrograms = async () => {
     setLoading(true);
     try {
       const res = await adminApi.get('/admin/programs');
@@ -33,9 +35,7 @@ const AdminProgramsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [adminApi]);
-
-  useEffect(() => { fetchPrograms(); }, [fetchPrograms]);
+  };
 
   const openCreate = () => { setEditing(null); setForm(EMPTY_FORM); setShowForm(true); setError(''); };
   const openEdit = (p) => { setEditing(p); setForm({ title: p.title, description: p.description, domain: p.domain, level: p.level, duration: p.duration, thumbnail: p.thumbnail || '', instructor: p.instructor, isActive: p.isActive }); setShowForm(true); setError(''); };
@@ -175,43 +175,19 @@ const AdminProgramsPage = () => {
                 <textarea rows={3} required value={form.description} onChange={(e) => setForm(p => ({ ...p, description: e.target.value }))}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#E4B61A] resize-none" />
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-white/50 mb-1">Domain</label>
-                <input
-                  type="text"
-                  required
-                  list="program-domain-options"
-                  value={form.domain}
-                  onChange={(e) => setForm(p => ({ ...p, domain: e.target.value }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#E4B61A]"
-                  placeholder="e.g. Engineering & Tech"
-                />
-                <datalist id="program-domain-options">
-                  {domainSuggestions.map((option) => <option key={option} value={option} />)}
-                </datalist>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-white/50 mb-1">Level</label>
-                <select value={form.level} onChange={(e) => setForm(p => ({ ...p, level: e.target.value }))}
-                  className="w-full bg-[#0a1220] border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#E4B61A]">
-                  {LEVELS.map((option) => <option key={option}>{option}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-white/50 mb-1">Duration</label>
-                <input
-                  type="text"
-                  required
-                  list="program-duration-options"
-                  value={form.duration}
-                  onChange={(e) => setForm(p => ({ ...p, duration: e.target.value }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#E4B61A]"
-                  placeholder="e.g. 6 Weeks"
-                />
-                <datalist id="program-duration-options">
-                  {durationSuggestions.map((option) => <option key={option} value={option} />)}
-                </datalist>
-              </div>
+              {[
+                { label: 'Domain', key: 'domain', options: DOMAINS },
+                { label: 'Level', key: 'level', options: LEVELS },
+                { label: 'Duration', key: 'duration', options: DURATIONS },
+              ].map(({ label, key, options }) => (
+                <div key={key}>
+                  <label className="block text-xs font-semibold text-white/50 mb-1">{label}</label>
+                  <select value={form[key]} onChange={(e) => setForm(p => ({ ...p, [key]: e.target.value }))}
+                    className="w-full bg-[#0a1220] border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#E4B61A]">
+                    {options.map(o => <option key={o}>{o}</option>)}
+                  </select>
+                </div>
+              ))}
               {editing && (
                 <label className="flex items-center gap-3 text-sm text-white/70 cursor-pointer">
                   <input type="checkbox" checked={form.isActive} onChange={(e) => setForm(p => ({ ...p, isActive: e.target.checked }))}
