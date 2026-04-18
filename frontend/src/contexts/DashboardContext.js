@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 import api from '../config/api';
 
 const DashboardContext = createContext();
+const DEFAULT_PROGRAM_PAGE_SIZE = 6;
 
 export const useDashboard = () => {
   const context = useContext(DashboardContext);
@@ -44,7 +45,8 @@ export const DashboardProvider = ({ children }) => {
     setProgramsLoading(true);
     try {
       const params = new URLSearchParams();
-      Object.entries(filters).forEach(([k, v]) => { if (v) params.append(k, v); });
+      const requestFilters = { limit: DEFAULT_PROGRAM_PAGE_SIZE, ...filters };
+      Object.entries(requestFilters).forEach(([k, v]) => { if (v) params.append(k, v); });
       const res = await api.get(`/programs?${params.toString()}`);
       setPrograms(res.data.programs);
       setProgramsPagination(res.data.pagination);

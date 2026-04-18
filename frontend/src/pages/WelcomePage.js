@@ -38,7 +38,7 @@ const WelcomePage = () => {
   }, [currentStep]);
 
   const handleGetStarted = () => {
-    navigate('/courses'); // Or wherever you want them to go
+    navigate('/programs');
   };
 
   const handleExplore = () => {
@@ -87,9 +87,9 @@ const WelcomePage = () => {
                 <div className="grid md:grid-cols-3 gap-6 mb-8">
                   <div className="text-center p-6 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl">
                     <div className="text-4xl mb-4">📚</div>
-                    <h3 className="text-xl font-semibold mb-2">Explore Courses</h3>
+                    <h3 className="text-xl font-semibold mb-2">Explore Programs</h3>
                     <p className="text-blue-100">
-                      Discover premium courses designed to accelerate your career
+                      Discover admin-curated training programs designed to accelerate your career
                     </p>
                   </div>
 
@@ -146,7 +146,7 @@ const WelcomePage = () => {
                     onClick={handleGetStarted}
                     className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all shadow-lg"
                   >
-                    🚀 Explore Courses
+                    🚀 Explore Programs
                   </button>
                   <button
                     onClick={handleExplore}
@@ -160,9 +160,9 @@ const WelcomePage = () => {
                 <div className="mt-8 p-4 bg-blue-50 rounded-xl border-l-4 border-blue-500">
                   <h4 className="font-semibold text-blue-900 mb-2">💡 Pro Tips:</h4>
                   <ul className="text-blue-800 text-sm space-y-1">
-                    <li>• Complete your profile to get personalized course recommendations</li>
+                    <li>• Complete your profile to get personalized program recommendations</li>
                     <li>• Join our free webinars to network with peers</li>
-                    <li>• Enable notifications to stay updated with new courses</li>
+                    <li>• Enable notifications to stay updated with new programs</li>
                   </ul>
                 </div>
               </div>

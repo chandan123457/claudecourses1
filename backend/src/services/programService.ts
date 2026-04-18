@@ -68,6 +68,35 @@ export const programService = {
     });
   },
 
+  async getAllProgramsForAdmin() {
+    return prisma.program.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        domain: true,
+        level: true,
+        duration: true,
+        thumbnail: true,
+        instructor: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: { select: { enrollments: true } },
+      },
+    });
+  },
+
+  async getAdminProgramStats() {
+    const [totalPrograms, activePrograms] = await Promise.all([
+      prisma.program.count(),
+      prisma.program.count({ where: { isActive: true } }),
+    ]);
+
+    return { totalPrograms, activePrograms };
+  },
+
   async createProgram(data: {
     title: string;
     description: string;

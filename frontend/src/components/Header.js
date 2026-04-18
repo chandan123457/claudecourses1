@@ -76,7 +76,7 @@ const Header = () => {
           <a className="hover:text-primary transition-all duration-200 cursor-pointer" onClick={handleHomeClick}>
             Home
           </a>
-          <Link to="/courses" className="hover:text-primary transition-all duration-200 cursor-pointer">
+          <Link to="/programs" className="hover:text-primary transition-all duration-200 cursor-pointer">
             Training Programs
           </Link>
           <Link to="/webinars" className="hover:text-primary transition-all duration-200 cursor-pointer">
@@ -117,12 +117,12 @@ const Header = () => {
                   onClick={() => {
                     setShowDropdown(false);
                     setIsMobileMenuOpen(false);
-                    navigate('/my-courses');
+                    navigate('/dashboard');
                   }}
                   className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors flex items-center gap-3 group"
                 >
                   <span className="text-lg group-hover:scale-110 transition-transform">📚</span>
-                  <span className="font-semibold text-gray-700">My Courses</span>
+                  <span className="font-semibold text-gray-700">Dashboard</span>
                 </button>
                 <div className="h-[1px] w-full bg-gray-100 my-1" />
                 <button
@@ -182,7 +182,7 @@ const Header = () => {
           </a>
           <div className="h-[1px] w-full bg-gray-100" />
           <Link 
-            to="/courses" 
+            to="/programs" 
             className="flex items-center text-lg font-bold text-gray-800 hover:text-primary hover:translate-x-2 transition-all cursor-pointer"
             onClick={() => setIsMobileMenuOpen(false)}
           >

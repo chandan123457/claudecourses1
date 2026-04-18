@@ -127,7 +127,7 @@ const AdminWebinarsPage = () => {
                 GradTo<span className="text-[#E4B61A]">Pro</span> Admin
               </Link>
               <div className="hidden md:flex space-x-4">
-                <Link to="/admin/courses" className="text-white/70 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Courses</Link>
+                <Link to="/admin/programs" className="text-white/70 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Programs</Link>
                 <Link to="/admin/webinars" className="bg-white/10 text-white px-3 py-2 rounded-md text-sm font-medium">Webinars</Link>
                 <Link to="/" className="text-white/70 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors" target="_blank">View Site</Link>
               </div>

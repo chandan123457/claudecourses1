@@ -92,7 +92,6 @@ const AdminUsersPage = () => {
         <nav className="flex-1 p-4 space-y-2">
           {[
             { label: 'Dashboard', path: '/admin/dashboard', icon: '📊' },
-            { label: 'Courses', path: '/admin/courses', icon: '📚' },
             { label: 'Programs', path: '/admin/programs', icon: '🎓' },
             { label: 'Webinars', path: '/admin/webinars', icon: '🎥' },
             { label: 'Users', path: '/admin/users', icon: '👥', active: true },

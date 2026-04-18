@@ -4,7 +4,6 @@ import { useAdmin, createAdminApi } from '../contexts/AdminContext';
 
 const SIDEBAR_LINKS = [
   { label: 'Dashboard', path: '/admin/dashboard', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>, active: true },
-  { label: 'Courses', path: '/admin/courses', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg> },
   { label: 'Programs', path: '/admin/programs', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg> },
   { label: 'Webinars', path: '/admin/webinars', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg> },
   { label: 'Users', path: '/admin/users', icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg> },
@@ -16,11 +15,10 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const { adminUser, adminLogout } = useAdmin();
   const [stats, setStats] = useState({
-    totalCourses: 0,
-    activeCourses: 0,
+    totalPrograms: 0,
+    activePrograms: 0,
     totalWebinars: 0,
     activeWebinars: 0,
-    totalPrograms: 0,
     totalUsers: 0,
     totalCertifications: 0,
     totalInterviews: 0,
@@ -159,21 +157,21 @@ const AdminDashboard = () => {
         <div className="p-8">
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {/* Total Courses */}
+            {/* Total Programs */}
             <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 rounded-2xl p-6 hover:border-blue-500/40 transition-all group">
               <div className="flex items-start justify-between mb-4">
                 <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
                   <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                   </svg>
                 </div>
                 <span className="text-blue-400 text-xs font-bold bg-blue-500/10 px-2 py-1 rounded-full">TOTAL</span>
               </div>
-              <p className="text-4xl font-black text-white mb-1">{stats.totalCourses}</p>
-              <p className="text-white/40 font-medium">Total Courses</p>
+              <p className="text-4xl font-black text-white mb-1">{stats.totalPrograms}</p>
+              <p className="text-white/40 font-medium">Total Programs</p>
             </div>
 
-            {/* Active Courses */}
+            {/* Active Programs */}
             <div className="bg-gradient-to-br from-green-500/10 to-green-600/5 border border-green-500/20 rounded-2xl p-6 hover:border-green-500/40 transition-all group">
               <div className="flex items-start justify-between mb-4">
                 <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -183,8 +181,8 @@ const AdminDashboard = () => {
                 </div>
                 <span className="text-green-400 text-xs font-bold bg-green-500/10 px-2 py-1 rounded-full">ACTIVE</span>
               </div>
-              <p className="text-4xl font-black text-white mb-1">{stats.activeCourses}</p>
-              <p className="text-white/40 font-medium">Active Courses</p>
+              <p className="text-4xl font-black text-white mb-1">{stats.activePrograms}</p>
+              <p className="text-white/40 font-medium">Active Programs</p>
             </div>
 
             {/* Total Webinars */}
@@ -222,8 +220,8 @@ const AdminDashboard = () => {
           {/* Extended Stats Row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
             {[
-              { label: 'Total Programs', value: stats.totalPrograms, color: 'from-teal-500/10', border: 'border-teal-500/20', text: 'text-teal-400' },
               { label: 'Total Users', value: stats.totalUsers, color: 'from-pink-500/10', border: 'border-pink-500/20', text: 'text-pink-400' },
+              { label: 'Live Webinars', value: stats.activeWebinars, color: 'from-teal-500/10', border: 'border-teal-500/20', text: 'text-teal-400' },
               { label: 'Certifications Issued', value: stats.totalCertifications, color: 'from-indigo-500/10', border: 'border-indigo-500/20', text: 'text-indigo-400' },
               { label: 'Interview Sessions', value: stats.totalInterviews, color: 'from-orange-500/10', border: 'border-orange-500/20', text: 'text-orange-400' },
             ].map(item => (
@@ -236,43 +234,43 @@ const AdminDashboard = () => {
 
           {/* Management Sections */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            {/* Course Management */}
+            {/* Program Management */}
             <div className="bg-[#0F1A2E] border border-white/5 rounded-2xl overflow-hidden">
               <div className="p-6 border-b border-white/5">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
                     <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-white">Course Management</h3>
+                    <h3 className="text-lg font-bold text-white">Program Management</h3>
                     <p className="text-white/40 text-sm">Create and manage training programs</p>
                   </div>
                 </div>
               </div>
               <div className="p-6">
                 <p className="text-white/60 text-sm mb-6">
-                  Build premium courses, set pricing, upload content, and manage student enrollments from one place.
+                  Publish admin-created programs, control active status, and keep the user-facing training catalog aligned with the backend.
                 </p>
                 <div className="space-y-3">
                   <Link
-                    to="/admin/courses"
+                    to="/admin/programs"
                     className="flex items-center justify-between w-full px-4 py-3 bg-white/5 hover:bg-white/10 rounded-xl transition-all group"
                   >
-                    <span className="text-white font-medium">View All Courses</span>
+                    <span className="text-white font-medium">View All Programs</span>
                     <svg className="w-5 h-5 text-white/40 group-hover:text-white group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>
                   </Link>
                   <Link
-                    to="/admin/courses/create"
+                    to="/admin/programs"
                     className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-all font-bold"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
-                    Create New Course
+                    Create New Program
                   </Link>
                 </div>
               </div>
@@ -326,13 +324,13 @@ const AdminDashboard = () => {
             <h3 className="text-lg font-bold text-white mb-6">Quick Actions</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Link
-                to="/admin/courses/create"
+                to="/admin/programs"
                 className="flex flex-col items-center gap-3 p-6 bg-white/5 hover:bg-blue-500/10 border border-white/5 hover:border-blue-500/30 rounded-2xl transition-all group"
               >
                 <div className="w-14 h-14 bg-blue-500/20 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <span className="text-2xl">📚</span>
+                  <span className="text-2xl">🎓</span>
                 </div>
-                <span className="text-white font-medium text-sm text-center">Add Course</span>
+                <span className="text-white font-medium text-sm text-center">Add Program</span>
               </Link>
 
               <Link

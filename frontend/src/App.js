@@ -1,21 +1,17 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { AdminProvider } from './contexts/AdminContext';
 import { DashboardProvider } from './contexts/DashboardContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
-import CoursesPage from './pages/CoursesPage';
-import CourseDetailPage from './pages/CourseDetailPage';
 import WebinarsPage from './pages/WebinarsPage';
 import WebinarDetailPage from './pages/WebinarDetailPage';
 import AuthPage from './pages/AuthPage';
 import WelcomePage from './pages/WelcomePage';
-import MyCoursesPage from './pages/MyCoursesPage';
 import AdminLoginPage from './pages/AdminLoginPage';
 import AdminDashboard from './pages/AdminDashboard';
-import AdminCoursesPage from './pages/AdminCoursesPage';
 import AdminWebinarsPage from './pages/AdminWebinarsPage';
 import AdminProgramsPage from './pages/AdminProgramsPage';
 import AdminUsersPage from './pages/AdminUsersPage';
@@ -23,10 +19,32 @@ import AdminInterviewsPage from './pages/AdminInterviewsPage';
 import AdminCertificationsPage from './pages/AdminCertificationsPage';
 import DashboardPage from './pages/DashboardPage';
 import ProgramsPage from './pages/ProgramsPage';
+import CoursesPage from './pages/CoursesPage';
 import InterviewsPage from './pages/InterviewsPage';
 import UserProfilePage from './pages/UserProfilePage';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
+import { useAuth } from './contexts/AuthContext';
+
+function ProgramsRoute() {
+  const { currentUser } = useAuth();
+
+  if (currentUser) {
+    return (
+      <ProtectedRoute>
+        <ProgramsPage />
+      </ProtectedRoute>
+    );
+  }
+
+  return (
+    <>
+      <Header />
+      <main><CoursesPage /></main>
+      <Footer />
+    </>
+  );
+}
 
 function App() {
   return (
@@ -39,7 +57,7 @@ function App() {
                 {/* ── Public Routes ── */}
                 <Route path="/" element={<><Header /><main><HomePage /></main><Footer /></>} />
                 <Route path="/auth" element={<><Header /><main><AuthPage /></main></>} />
-                <Route path="/courses" element={<><Header /><main><CoursesPage /></main></>} />
+                <Route path="/courses" element={<Navigate to="/programs" replace />} />
                 <Route path="/webinars" element={<><Header /><main><WebinarsPage /></main></>} />
 
                 {/* ── Protected User Routes ── */}
@@ -47,14 +65,10 @@ function App() {
                   <ProtectedRoute><WelcomePage /></ProtectedRoute>
                 } />
                 <Route path="/my-courses" element={
-                  <ProtectedRoute>
-                    <><Header /><main><MyCoursesPage /></main></>
-                  </ProtectedRoute>
+                  <Navigate to="/dashboard" replace />
                 } />
                 <Route path="/courses/:id" element={
-                  <ProtectedRoute>
-                    <><Header /><main><CourseDetailPage /></main></>
-                  </ProtectedRoute>
+                  <Navigate to="/programs" replace />
                 } />
                 <Route path="/webinars/:id" element={
                   <ProtectedRoute>
@@ -66,9 +80,7 @@ function App() {
                 <Route path="/dashboard" element={
                   <ProtectedRoute><DashboardPage /></ProtectedRoute>
                 } />
-                <Route path="/programs" element={
-                  <ProtectedRoute><ProgramsPage /></ProtectedRoute>
-                } />
+                <Route path="/programs" element={<ProgramsRoute />} />
                 <Route path="/interviews" element={
                   <ProtectedRoute><InterviewsPage /></ProtectedRoute>
                 } />
@@ -82,10 +94,10 @@ function App() {
                   <AdminProtectedRoute><AdminDashboard /></AdminProtectedRoute>
                 } />
                 <Route path="/admin/courses" element={
-                  <AdminProtectedRoute><AdminCoursesPage /></AdminProtectedRoute>
+                  <Navigate to="/admin/programs" replace />
                 } />
                 <Route path="/admin/courses/create" element={
-                  <AdminProtectedRoute><AdminCoursesPage /></AdminProtectedRoute>
+                  <Navigate to="/admin/programs" replace />
                 } />
                 <Route path="/admin/webinars" element={
                   <AdminProtectedRoute><AdminWebinarsPage /></AdminProtectedRoute>

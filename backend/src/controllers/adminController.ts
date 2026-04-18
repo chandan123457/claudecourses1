@@ -208,8 +208,8 @@ export const adminController = {
 
   // ===================== PROGRAM MANAGEMENT =====================
   getAllPrograms: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    const result = await programService.getPrograms({ page: 1, limit: 100 });
-    res.status(200).json({ success: true, data: result.programs });
+    const programs = await programService.getAllProgramsForAdmin();
+    res.status(200).json({ success: true, data: programs });
   }),
 
   createProgram: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
@@ -337,10 +337,10 @@ export const adminController = {
 
   // Extended dashboard stats
   getExtendedStats: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    const [courses, webinars, programs, users, certifications, interviews] = await Promise.all([
+    const [courses, webinars, programStats, users, certifications, interviews] = await Promise.all([
       courseService.getAllCourses(),
       webinarService.getAllWebinars(),
-      programService.getPrograms({ page: 1, limit: 100 }),
+      programService.getAdminProgramStats(),
       profileService.getAllUsers({ page: 1, limit: 1 }),
       profileService.getAllCertifications({ page: 1, limit: 1 }),
       interviewService.getAllSessions({ page: 1, limit: 1 }),
@@ -353,7 +353,8 @@ export const adminController = {
         activeCourses: courses.filter((c: any) => c.isActive).length,
         totalWebinars: webinars.length,
         activeWebinars: webinars.filter((w: any) => w.isActive).length,
-        totalPrograms: programs.pagination.total,
+        totalPrograms: programStats.totalPrograms,
+        activePrograms: programStats.activePrograms,
         totalUsers: users.total,
         totalCertifications: certifications.total,
         totalInterviews: interviews.total,
