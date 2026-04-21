@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAdmin, createAdminApi } from '../contexts/AdminContext';
 
@@ -34,7 +34,7 @@ const NAV = [
 const AdminProgramsPage = () => {
   const navigate = useNavigate();
   const { adminLogout } = useAdmin();
-  const adminApi = createAdminApi();
+  const adminApi = useMemo(() => createAdminApi(), []);
 
   // ── View state ──
   const [view, setView] = useState('programs'); // 'programs' | 'content'

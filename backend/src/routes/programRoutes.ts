@@ -1,5 +1,5 @@
 import express from 'express';
-import { programController, validateProgram } from '../controllers/programController';
+import { programController } from '../controllers/programController';
 import { authenticate, optionalAuthenticate } from '../middlewares/auth';
 
 const router = express.Router();
