@@ -64,6 +64,29 @@ export const isAdmin = async (
   }
 };
 
+// Optional authentication - attaches user if header present, does not fail if missing
+export const optionalAuthenticate = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const firebaseUid = req.headers['x-firebase-uid'] as string;
+    if (firebaseUid) {
+      const user = await prisma.user.findUnique({
+        where: { firebaseUid },
+        select: { id: true, firebaseUid: true, name: true, email: true },
+      });
+      if (user) {
+        req.user = { id: user.id, firebase_uid: user.firebaseUid, name: user.name, email: user.email };
+      }
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Extend Express Request type
 declare global {
   namespace Express {

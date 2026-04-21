@@ -17,6 +17,9 @@ router.post('/login', validateAdminLogin, adminController.login);
 // Image upload route (protected with admin auth)
 router.post('/upload/image', isAdmin, uploadSingle, imageController.uploadImage);
 
+// Video upload route
+router.post('/upload/video', isAdmin, ...(imageController.uploadVideo as any[]));
+
 // Protected admin routes (require admin key)
 router.get('/dashboard/stats', isAdmin, adminController.getExtendedStats);
 
@@ -40,6 +43,17 @@ router.get('/programs', isAdmin, adminController.getAllPrograms);
 router.post('/programs', isAdmin, adminController.createProgram);
 router.put('/programs/:id', isAdmin, adminController.updateProgram);
 router.delete('/programs/:id', isAdmin, adminController.deleteProgram);
+
+// Module management
+router.get('/programs/:programId/modules', isAdmin, adminController.getModules);
+router.post('/programs/:programId/modules', isAdmin, adminController.createModule);
+router.put('/modules/:id', isAdmin, adminController.updateModule);
+router.delete('/modules/:id', isAdmin, adminController.deleteModule);
+
+// Lesson management
+router.post('/modules/:moduleId/lessons', isAdmin, adminController.createLesson);
+router.put('/lessons/:id', isAdmin, adminController.updateLesson);
+router.delete('/lessons/:id', isAdmin, adminController.deleteLesson);
 
 // Interview management
 router.get('/interviews/sessions', isAdmin, adminController.getAllInterviewSessions);

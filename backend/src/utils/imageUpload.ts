@@ -71,6 +71,22 @@ export const deleteFromCloudinary = async (publicId: string): Promise<void> => {
  * @param url - Full Cloudinary URL
  * @returns public_id
  */
+export const uploadVideoToCloudinary = (
+  buffer: Buffer,
+  folder: string
+): Promise<UploadApiResponse> => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { folder: `gradtopro/${folder}`, resource_type: 'video' },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result!);
+      }
+    );
+    streamifier.createReadStream(buffer).pipe(uploadStream);
+  });
+};
+
 export const getPublicIdFromUrl = (url: string): string | null => {
   try {
     // Example URL: https://res.cloudinary.com/cloud/image/upload/v123/gradtopro/courses/abc.jpg

@@ -212,14 +212,14 @@ const ProgramCard = ({ enrollment }) => {
 
       {/* CTA button */}
       <Link
-        to="/programs"
+        to={`/programs/${program.id}/learn`}
         className={`block w-full text-center py-2.5 rounded-xl text-sm font-semibold transition-all ${
           isActive
             ? 'bg-yellow-400 text-gray-900 hover:bg-yellow-500'
             : 'border border-gray-200 text-gray-700 hover:bg-gray-50'
         }`}
       >
-        {isActive ? 'Continue Learning' : progress > 0 ? 'Continue Learning' : 'Start Module 1'}
+        {progress > 0 ? 'Continue Learning' : 'Start Learning'}
       </Link>
     </div>
   );

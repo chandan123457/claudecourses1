@@ -16,6 +16,7 @@ export const programController = {
       search: search as string,
       page: page ? parseInt(page as string) : 1,
       limit: limit ? parseInt(limit as string) : 9,
+      userId: req.user?.id,
     });
 
     res.status(200).json({ success: true, ...result });
@@ -70,6 +71,50 @@ export const programController = {
     const userId = req.user!.id;
     const enrollments = await programService.getUserEnrollments(userId);
     res.status(200).json({ success: true, data: enrollments });
+  }),
+
+  // GET /programs/:id/content
+  getProgramContent: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const programId = parseInt(req.params.id);
+    const userId = req.user!.id;
+    const data = await programService.getProgramContent(programId, userId);
+    if (!data) throw new AppError('Not enrolled or program not found', 403);
+    res.status(200).json({ success: true, data });
+  }),
+
+  // GET /programs/lessons/:lessonId
+  getLesson: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const lessonId = parseInt(req.params.lessonId);
+    const userId = req.user!.id;
+    const data = await programService.getLessonById(lessonId, userId);
+    if (!data) throw new AppError('Lesson not found or not enrolled', 403);
+    res.status(200).json({ success: true, data });
+  }),
+
+  // POST /programs/lessons/:lessonId/complete
+  markLessonComplete: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const lessonId = parseInt(req.params.lessonId);
+    const userId = req.user!.id;
+    const { completed } = req.body;
+    const result = await programService.markLessonComplete(userId, lessonId, completed !== false);
+    res.status(200).json({ success: true, data: result });
+  }),
+
+  // POST /programs/payment/create-order
+  createPaymentOrder: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user!.id;
+    const { programId } = req.body;
+    if (!programId) throw new AppError('programId is required', 400);
+    const order = await programService.createProgramOrder(userId, parseInt(programId));
+    res.status(201).json({ success: true, data: order });
+  }),
+
+  // POST /programs/payment/verify
+  verifyPayment: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const { orderId, paymentId, signature } = req.body;
+    if (!orderId || !paymentId || !signature) throw new AppError('orderId, paymentId, and signature are required', 400);
+    const result = await programService.verifyProgramPayment(orderId, paymentId, signature);
+    res.status(200).json({ success: true, data: result });
   }),
 };
 

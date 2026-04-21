@@ -54,4 +54,21 @@ export const uploadSingle = upload.single('image');
  */
 export const uploadMultiple = upload.array('images', 5);
 
+// Video upload configuration (500MB limit)
+const videoFileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  if (file.mimetype.startsWith('video/')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only video files are allowed.'));
+  }
+};
+
+const videoUpload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: videoFileFilter,
+  limits: { fileSize: 500 * 1024 * 1024 },
+});
+
+export const uploadVideo = videoUpload.single('video');
+
 export default upload;

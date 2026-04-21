@@ -22,6 +22,9 @@ import ProgramsPage from './pages/ProgramsPage';
 import CoursesPage from './pages/CoursesPage';
 import InterviewsPage from './pages/InterviewsPage';
 import UserProfilePage from './pages/UserProfilePage';
+import EnrollVerifyPhonePage from './pages/EnrollVerifyPhonePage';
+import EnrollPaymentPage from './pages/EnrollPaymentPage';
+import CourseContentPage from './pages/CourseContentPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
@@ -81,12 +84,22 @@ function App() {
                   <ProtectedRoute><DashboardPage /></ProtectedRoute>
                 } />
                 <Route path="/programs" element={<ProgramsRoute />} />
+                <Route path="/programs/:programId/learn" element={
+                  <ProtectedRoute><CourseContentPage /></ProtectedRoute>
+                } />
+                <Route path="/programs/:programId/learn/:lessonId" element={
+                  <ProtectedRoute><CourseContentPage /></ProtectedRoute>
+                } />
                 <Route path="/interviews" element={
                   <ProtectedRoute><InterviewsPage /></ProtectedRoute>
                 } />
                 <Route path="/profile" element={
                   <ProtectedRoute><UserProfilePage /></ProtectedRoute>
                 } />
+
+                {/* ── Enrollment Flow Routes ── */}
+                <Route path="/enroll/:programId/phone" element={<EnrollVerifyPhonePage />} />
+                <Route path="/enroll/:programId/payment" element={<EnrollPaymentPage />} />
 
                 {/* ── Admin Routes ── */}
                 <Route path="/admin/login" element={<AdminLoginPage />} />

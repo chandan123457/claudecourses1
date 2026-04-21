@@ -221,6 +221,7 @@ export const adminController = {
       duration: req.body.duration,
       thumbnail: req.body.thumbnail,
       instructor: req.body.instructor,
+      price: req.body.price ? parseInt(req.body.price) : 0,
     };
     const program = await programService.createProgram(data);
     logger.info('Program created by admin', { programId: program.id });
@@ -239,6 +240,54 @@ export const adminController = {
     await programService.deleteProgram(id);
     logger.info('Program deleted by admin', { programId: id });
     res.status(200).json({ success: true, message: 'Program deleted successfully' });
+  }),
+
+  // ===================== MODULE MANAGEMENT =====================
+  getModules: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const programId = parseInt(req.params.programId);
+    const modules = await programService.getModules(programId);
+    res.status(200).json({ success: true, data: modules });
+  }),
+
+  createModule: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const programId = parseInt(req.params.programId);
+    const { title, description, order, isLocked } = req.body;
+    const module = await programService.createModule({ programId, title, description, order, isLocked });
+    logger.info('Module created by admin', { moduleId: module.id, programId });
+    res.status(201).json({ success: true, message: 'Module created successfully', data: module });
+  }),
+
+  updateModule: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const id = parseInt(req.params.id);
+    const module = await programService.updateModule(id, req.body);
+    res.status(200).json({ success: true, message: 'Module updated successfully', data: module });
+  }),
+
+  deleteModule: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const id = parseInt(req.params.id);
+    await programService.deleteModule(id);
+    res.status(200).json({ success: true, message: 'Module deleted successfully' });
+  }),
+
+  // ===================== LESSON MANAGEMENT =====================
+  createLesson: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const moduleId = parseInt(req.params.moduleId);
+    const { title, description, duration, videoUrl, videoUrl360p, videoUrl480p, videoUrl720p, order, resources, keyTakeaway } = req.body;
+    const lesson = await programService.createLesson({ moduleId, title, description, duration, videoUrl, videoUrl360p, videoUrl480p, videoUrl720p, order, resources, keyTakeaway });
+    logger.info('Lesson created by admin', { lessonId: lesson.id, moduleId });
+    res.status(201).json({ success: true, message: 'Lesson created successfully', data: lesson });
+  }),
+
+  updateLesson: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const id = parseInt(req.params.id);
+    const lesson = await programService.updateLesson(id, req.body);
+    res.status(200).json({ success: true, message: 'Lesson updated successfully', data: lesson });
+  }),
+
+  deleteLesson: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const id = parseInt(req.params.id);
+    await programService.deleteLesson(id);
+    res.status(200).json({ success: true, message: 'Lesson deleted successfully' });
   }),
 
   // ===================== INTERVIEW MANAGEMENT =====================

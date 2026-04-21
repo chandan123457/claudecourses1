@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { asyncHandler, AppError } from '../middlewares/errorHandler';
-import { uploadToCloudinary } from '../utils/imageUpload';
+import { uploadToCloudinary, uploadVideoToCloudinary } from '../utils/imageUpload';
+import { uploadVideo } from '../middlewares/upload';
 import logger from '../utils/logger';
 
 /**
@@ -64,6 +65,25 @@ export const imageController = {
       throw new AppError('Failed to upload image to cloud storage', 500);
     }
   }),
+  uploadVideo: [
+    uploadVideo,
+    asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+      if (!req.file) throw new AppError('No video file provided', 400);
+      const folder = req.body.folder || 'videos';
+      try {
+        const result = await uploadVideoToCloudinary(req.file.buffer, folder);
+        logger.info('Video uploaded successfully', { url: result.secure_url });
+        res.status(200).json({
+          success: true,
+          message: 'Video uploaded successfully',
+          data: { url: result.secure_url, publicId: result.public_id },
+        });
+      } catch (error: any) {
+        logger.error('Video upload failed', { error: error.message });
+        throw new AppError('Failed to upload video to cloud storage', 500);
+      }
+    }),
+  ],
 };
 
 export default imageController;

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useDashboard } from '../contexts/DashboardContext';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
@@ -34,6 +35,7 @@ const PAGE_SIZE = 6;
 // ── Main Page ────────────────────────────────────────────────
 
 const ProgramsPage = () => {
+  const navigate = useNavigate();
   const {
     programs,
     programsPagination,
@@ -41,7 +43,6 @@ const ProgramsPage = () => {
     filterOptions,
     fetchPrograms,
     fetchFilterOptions,
-    enrollInProgram,
   } = useDashboard();
 
   const [filters, setFilters] = useState({
@@ -51,8 +52,6 @@ const ProgramsPage = () => {
     search: '',
     page: 1,
   });
-  const [enrolling, setEnrolling]     = useState(null);
-  const [enrollSuccess, setEnrollSuccess] = useState(null);
   const [sortBy, setSortBy]           = useState('Popularity');
   const [savedPrograms, setSavedPrograms] = useState(new Set());
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -68,17 +67,8 @@ const ProgramsPage = () => {
   const clearFilters = () =>
     setFilters({ domain: '', level: '', duration: '', search: '', page: 1 });
 
-  const handleEnroll = async (programId) => {
-    setEnrolling(programId);
-    try {
-      await enrollInProgram(programId);
-      setEnrollSuccess(programId);
-      setTimeout(() => setEnrollSuccess(null), 3000);
-    } catch (err) {
-      console.error('Enrollment error:', err);
-    } finally {
-      setEnrolling(null);
-    }
+  const handleEnroll = (programId) => {
+    navigate(`/enroll/${programId}/payment`);
   };
 
   const toggleSave = (id) =>
@@ -365,8 +355,8 @@ const ProgramsPage = () => {
                       key={program.id}
                       program={program}
                       onEnroll={handleEnroll}
-                      enrolling={enrolling === program.id}
-                      enrolled={enrollSuccess === program.id}
+                      enrolling={false}
+                      enrolled={false}
                       saved={savedPrograms.has(program.id)}
                       onSave={() => toggleSave(program.id)}
                     />
@@ -422,6 +412,7 @@ const FilterChip = ({ label, onRemove }) => (
 const ProgramCard = ({ program, onEnroll, enrolling, enrolled, saved, onSave }) => {
   const levelColor = LEVEL_COLORS[program.level] || 'bg-gray-100 text-gray-600';
   const domainStyle = DOMAIN_CARD_COLORS[program.domain] || { bg: 'from-gray-300 to-gray-400', text: 'text-white' };
+  const isEnrolled = program.isEnrolled || enrolled;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col">
@@ -508,20 +499,43 @@ const ProgramCard = ({ program, onEnroll, enrolling, enrolled, saved, onSave }) 
           </span>
         </div>
 
-        {/* Enroll button */}
-        <button
-          onClick={() => onEnroll(program.id)}
-          disabled={enrolling || enrolled}
-          className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all ${
-            enrolled
-              ? 'bg-green-100 text-green-700 cursor-default'
-              : enrolling
-              ? 'bg-primary/50 text-secondary cursor-wait'
-              : 'bg-primary text-secondary hover:opacity-90 active:scale-[0.98]'
-          }`}
-        >
-          {enrolled ? 'Enrolled!' : enrolling ? 'Enrolling...' : 'Enroll Now'}
-        </button>
+        {/* Enroll / Continue button */}
+        {isEnrolled ? (
+          <div className="flex flex-col gap-2">
+            <span className="w-full py-2 rounded-xl text-xs font-bold text-center bg-green-100 text-green-700 flex items-center justify-center gap-1.5">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+              Enrolled
+            </span>
+            <Link
+              to={`/programs/${program.id}/learn`}
+              className="w-full py-2.5 rounded-xl text-sm font-bold text-center bg-primary text-secondary hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Continue Learning
+            </Link>
+          </div>
+        ) : (
+          <button
+            onClick={() => onEnroll(program.id)}
+            disabled={enrolling}
+            className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all ${
+              enrolling
+                ? 'bg-primary/50 text-secondary cursor-wait'
+                : 'bg-primary text-secondary hover:opacity-90 active:scale-[0.98]'
+            }`}
+          >
+            {enrolling ? 'Loading...' : (
+              program.price > 0
+                ? `Enroll Now · ₹${program.price.toLocaleString('en-IN')}`
+                : 'Enroll Now · Free'
+            )}
+          </button>
+        )}
       </div>
     </div>
   );
