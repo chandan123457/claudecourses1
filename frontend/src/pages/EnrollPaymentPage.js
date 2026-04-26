@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../config/api';
 
@@ -18,19 +18,21 @@ const loadRazorpay = () =>
 const EnrollPaymentPage = () => {
   const { programId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { currentUser, dbUser } = useAuth();
+  const guestCheckout = searchParams.get('guest') === '1';
 
   const [program, setProgram] = useState(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState('');
 
-  // Redirect to sign-in if not logged in
+  // Dashboard checkout still requires an account; public cards opt into guest checkout.
   useEffect(() => {
-    if (!currentUser) {
+    if (!currentUser && !guestCheckout) {
       navigate(`/enroll/${programId}/phone`, { replace: true });
     }
-  }, [currentUser, programId, navigate]);
+  }, [currentUser, guestCheckout, programId, navigate]);
 
   useEffect(() => {
     if (!programId) return;
@@ -44,6 +46,10 @@ const EnrollPaymentPage = () => {
     setPaying(true);
     setError('');
     try {
+      if (!currentUser) {
+        navigate(`/enroll/${programId}/phone?free=1`);
+        return;
+      }
       await api.post('/programs/enroll', { programId: parseInt(programId) });
       navigate('/dashboard');
     } catch (err) {
@@ -77,14 +83,26 @@ const EnrollPaymentPage = () => {
         theme: { color: '#FCD34D' },
         handler: async (response) => {
           try {
-            await api.post('/programs/payment/verify', {
+            const verifyRes = await api.post('/programs/payment/verify', {
               orderId: response.razorpay_order_id,
               paymentId: response.razorpay_payment_id,
               signature: response.razorpay_signature,
             });
+            const verification = verifyRes.data.data;
+            if (verification?.requiresAccount) {
+              if (!verification.claimToken) {
+                throw new Error('Missing purchase claim token.');
+              }
+              const params = new URLSearchParams({
+                orderId: response.razorpay_order_id,
+                token: verification.claimToken,
+              });
+              navigate(`/enroll/${programId}/phone?${params.toString()}`, { replace: true });
+              return;
+            }
             navigate('/dashboard', { state: { enrolled: true, programTitle: program?.title } });
           } catch (err) {
-            setError('Payment verification failed. Contact support.');
+            setError(err.message || 'Payment verification failed. Contact support.');
             setPaying(false);
           }
         },

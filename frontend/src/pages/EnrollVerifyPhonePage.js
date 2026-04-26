@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { createUserWithEmailAndPassword, updateProfile, signOut as firebaseSignOut } from 'firebase/auth';
 import { auth } from '../config/firebase';
@@ -9,24 +9,31 @@ import api from '../config/api';
 const EnrollVerifyPhonePage = () => {
   const { programId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { signInWithPhoneNumber, clearRecaptcha, currentUser } = useAuth();
+  const purchaseToken = searchParams.get('token');
+  const freeEnrollment = searchParams.get('free') === '1';
 
   // If already logged in, skip to payment
   React.useEffect(() => {
-    if (currentUser) navigate(`/enroll/${programId}/payment`, { replace: true });
-  }, [currentUser, programId, navigate]);
+    if (currentUser && !purchaseToken && !freeEnrollment) {
+      navigate(`/enroll/${programId}/payment`, { replace: true });
+    }
+  }, [currentUser, freeEnrollment, programId, purchaseToken, navigate]);
 
   const [step, setStep] = useState('phone'); // phone | otp | profile
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState('');
   const [confirmationResult, setConfirmationResult] = useState(null);
   const [error, setError] = useState('');
+  const [existingAccountSignInUrl, setExistingAccountSignInUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [profileData, setProfileData] = useState({ name: '', email: '', password: '' });
 
   const handleSendOTP = async (e) => {
     e.preventDefault();
     setError('');
+    setExistingAccountSignInUrl('');
     setLoading(true);
     try {
       const cleaned = phoneNumber.replace(/\s+/g, '').replace(/-/g, '');
@@ -34,7 +41,18 @@ const EnrollVerifyPhonePage = () => {
       try {
         const check = await api.get(`/users/check-phone/${encodeURIComponent(formatted)}`);
         if (check.data.exists) {
-          setError('Phone already registered. Please sign in to enroll.');
+          if (purchaseToken || freeEnrollment) {
+            const params = new URLSearchParams({
+              mode: 'signin',
+              redirect: '/dashboard',
+            });
+            if (purchaseToken) params.set('claimToken', purchaseToken);
+            if (freeEnrollment) params.set('enrollProgramId', programId);
+            setExistingAccountSignInUrl(`/auth?${params.toString()}`);
+            setError('Phone already registered. Please sign in to link this program to your account.');
+          } else {
+            setError('Phone already registered. Please sign in to enroll.');
+          }
           setLoading(false);
           return;
         }
@@ -87,6 +105,19 @@ const EnrollVerifyPhonePage = () => {
         name: profileData.name,
         email: profileData.email,
       });
+
+      if (purchaseToken) {
+        await api.post('/programs/payment/claim', { token: purchaseToken });
+      } else if (freeEnrollment) {
+        await api.post('/programs/enroll', { programId: parseInt(programId) });
+      }
+
+      if (purchaseToken || freeEnrollment) {
+        await firebaseSignOut(auth);
+        navigate('/auth?mode=signin&redirect=/dashboard', { replace: true });
+        return;
+      }
+
       navigate(`/enroll/${programId}/payment`);
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') setError('Email already registered. Please sign in.');
@@ -153,7 +184,7 @@ const EnrollVerifyPhonePage = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
                 </div>
-                <h1 className="text-2xl font-bold text-gray-900 mb-1">Verify Your Phone</h1>
+                <h1 className="text-2xl font-bold text-gray-900 mb-1">Verify Your Phone Number</h1>
                 <p className="text-sm text-gray-500 mb-6">We'll send a one-time code to verify your number</p>
 
                 <form onSubmit={handleSendOTP} className="space-y-4">
@@ -171,7 +202,20 @@ const EnrollVerifyPhonePage = () => {
                       />
                     </div>
                   </div>
-                  {error && <p className="text-red-500 text-sm bg-red-50 px-4 py-2.5 rounded-xl">{error}</p>}
+                  {error && (
+                    <div className="text-red-500 text-sm bg-red-50 px-4 py-2.5 rounded-xl">
+                      <p>{error}</p>
+                      {existingAccountSignInUrl && (
+                        <button
+                          type="button"
+                          onClick={() => navigate(existingAccountSignInUrl)}
+                          className="mt-2 font-semibold text-red-700 underline"
+                        >
+                          Sign in and continue
+                        </button>
+                      )}
+                    </div>
+                  )}
                   <button
                     type="submit"
                     disabled={loading}
@@ -244,7 +288,11 @@ const EnrollVerifyPhonePage = () => {
                   </svg>
                 </div>
                 <h1 className="text-2xl font-bold text-gray-900 mb-1">Complete Your Profile</h1>
-                <p className="text-sm text-gray-500 mb-6">Create your account to continue to payment</p>
+                <p className="text-sm text-gray-500 mb-6">
+                  {purchaseToken || freeEnrollment
+                    ? 'Create your account to access your enrolled program'
+                    : 'Create your account to continue to payment'}
+                </p>
 
                 <form onSubmit={handleCreateAccount} className="space-y-4">
                   <div>
@@ -287,7 +335,11 @@ const EnrollVerifyPhonePage = () => {
                     disabled={loading}
                     className="w-full py-3 bg-yellow-400 text-gray-900 font-bold rounded-xl hover:bg-yellow-500 transition-all disabled:opacity-60"
                   >
-                    {loading ? 'Creating Account...' : 'Continue to Payment'}
+                    {loading
+                      ? 'Creating Account...'
+                      : purchaseToken || freeEnrollment
+                      ? 'Create Account'
+                      : 'Continue to Payment'}
                   </button>
                 </form>
               </>

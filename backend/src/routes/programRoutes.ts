@@ -5,8 +5,9 @@ import { authenticate, optionalAuthenticate } from '../middlewares/auth';
 const router = express.Router();
 
 // Payment routes (must come before /:id to avoid conflicts)
-router.post('/payment/create-order', authenticate, programController.createPaymentOrder);
+router.post('/payment/create-order', optionalAuthenticate, programController.createPaymentOrder);
 router.post('/payment/verify', programController.verifyPayment);
+router.post('/payment/claim', authenticate, programController.claimPayment);
 
 // Lesson routes
 router.get('/lessons/:lessonId', authenticate, programController.getLesson);

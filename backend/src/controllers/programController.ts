@@ -102,7 +102,7 @@ export const programController = {
 
   // POST /programs/payment/create-order
   createPaymentOrder: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    const userId = req.user!.id;
+    const userId = req.user?.id || null;
     const { programId } = req.body;
     if (!programId) throw new AppError('programId is required', 400);
     const order = await programService.createProgramOrder(userId, parseInt(programId));
@@ -115,6 +115,22 @@ export const programController = {
     if (!orderId || !paymentId || !signature) throw new AppError('orderId, paymentId, and signature are required', 400);
     const result = await programService.verifyProgramPayment(orderId, paymentId, signature);
     res.status(200).json({ success: true, data: result });
+  }),
+
+  // POST /programs/payment/claim
+  claimPayment: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.user!.id;
+    const { token } = req.body;
+    if (!token) throw new AppError('token is required', 400);
+
+    const enrollment = await programService.claimPaidProgramOrder(userId, token);
+    logger.info('User claimed paid program order', { userId, programId: enrollment.programId });
+
+    res.status(200).json({
+      success: true,
+      message: 'Program purchase linked successfully',
+      data: enrollment,
+    });
   }),
 };
 

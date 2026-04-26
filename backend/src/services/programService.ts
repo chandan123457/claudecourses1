@@ -1,4 +1,5 @@
 import Razorpay from 'razorpay';
+import crypto from 'crypto';
 import prisma from '../db/prisma';
 import { verifyRazorpaySignature } from '../utils/razorpay';
 
@@ -238,15 +239,17 @@ export const programService = {
   },
 
   // ── Program Payment ───────────────────────────────────────────
-  async createProgramOrder(userId: number, programId: number) {
+  async createProgramOrder(userId: number | null, programId: number) {
     const program = await prisma.program.findUnique({ where: { id: programId } });
     if (!program) throw new Error('Program not found');
     if (!program.price || program.price === 0) throw new Error('This program is free');
 
-    const existing = await prisma.programEnrollment.findUnique({
-      where: { userId_programId: { userId, programId } },
-    });
-    if (existing) throw new Error('Already enrolled in this program');
+    if (userId) {
+      const existing = await prisma.programEnrollment.findUnique({
+        where: { userId_programId: { userId, programId } },
+      });
+      if (existing) throw new Error('Already enrolled in this program');
+    }
 
     const razorpayOrder = await getRazorpay().orders.create({
       amount: program.price * 100,
@@ -274,19 +277,75 @@ export const programService = {
     const order = await prisma.programOrder.findUnique({ where: { razorpayOrderId: orderId } });
     if (!order) throw new Error('Order not found');
 
+    if (order.status === 'paid') {
+      if (!order.userId) {
+        const claimToken = order.claimToken || crypto.randomUUID();
+        if (!order.claimToken) {
+          await prisma.programOrder.update({
+            where: { id: order.id },
+            data: { claimToken },
+          });
+        }
+        return { success: true, programId: order.programId, requiresAccount: true, claimToken };
+      }
+      return { success: true, programId: order.programId, requiresAccount: false };
+    }
+
+    const claimToken = order.userId ? null : crypto.randomUUID();
+
     await prisma.$transaction(async (tx) => {
-      await tx.programPayment.create({
-        data: { orderId: order.id, razorpayPaymentId: paymentId, razorpaySignature: signature, status: 'success' },
+      await tx.programPayment.upsert({
+        where: { orderId: order.id },
+        update: { status: 'success' },
+        create: { orderId: order.id, razorpayPaymentId: paymentId, razorpaySignature: signature, status: 'success' },
       });
-      await tx.programOrder.update({ where: { id: order.id }, data: { status: 'paid' } });
-      await tx.programEnrollment.upsert({
-        where: { userId_programId: { userId: order.userId, programId: order.programId } },
-        update: {},
-        create: { userId: order.userId, programId: order.programId },
+      await tx.programOrder.update({
+        where: { id: order.id },
+        data: { status: 'paid', ...(claimToken ? { claimToken } : {}) },
       });
+      if (order.userId) {
+        await tx.programEnrollment.upsert({
+          where: { userId_programId: { userId: order.userId, programId: order.programId } },
+          update: {},
+          create: { userId: order.userId, programId: order.programId },
+        });
+      }
     });
 
-    return { success: true, programId: order.programId };
+    return {
+      success: true,
+      programId: order.programId,
+      requiresAccount: !order.userId,
+      ...(claimToken ? { claimToken } : {}),
+    };
+  },
+
+  async claimPaidProgramOrder(userId: number, claimToken: string) {
+    const order = await prisma.programOrder.findUnique({
+      where: { claimToken },
+      include: { payment: true },
+    });
+
+    if (!order || order.status !== 'paid' || !order.payment) {
+      throw new Error('Paid program order not found');
+    }
+    if (order.userId && order.userId !== userId) {
+      throw new Error('This program order has already been claimed');
+    }
+
+    return prisma.$transaction(async (tx) => {
+      await tx.programOrder.update({
+        where: { id: order.id },
+        data: { userId, claimToken: null, claimedAt: new Date() },
+      });
+
+      return tx.programEnrollment.upsert({
+        where: { userId_programId: { userId, programId: order.programId } },
+        update: {},
+        create: { userId, programId: order.programId },
+        include: { program: true },
+      });
+    });
   },
 
   async getFilterOptions() {

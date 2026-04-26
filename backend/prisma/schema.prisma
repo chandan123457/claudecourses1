@@ -231,16 +231,18 @@ model LessonProgress {
 
 model ProgramOrder {
   id                Int      @id @default(autoincrement())
-  userId            Int      @map("user_id")
+  userId            Int?     @map("user_id")
   programId         Int      @map("program_id")
   razorpayOrderId   String   @unique @map("razorpay_order_id")
   amount            Int
   currency          String   @default("INR")
   status            String   @default("created")
+  claimToken        String?  @unique @map("claim_token")
+  claimedAt         DateTime? @map("claimed_at")
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
 
-  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
   program           Program        @relation(fields: [programId], references: [id], onDelete: Cascade)
   payment           ProgramPayment?
 

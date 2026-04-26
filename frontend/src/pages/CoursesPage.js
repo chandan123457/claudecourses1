@@ -130,10 +130,12 @@ const CoursesPage = () => {
 
                   {/* CTA */}
                   <Link
-                    to="/programs"
+                    to={`/enroll/${program.id}/payment${currentUser ? '' : '?guest=1'}`}
                     className="block w-full bg-[#E4B61A] text-[#0F1A2E] text-center py-2.5 rounded-xl font-bold text-sm hover:bg-[#d4a610] transition-colors"
                   >
-                    {currentUser ? 'Browse Programs' : 'Enroll Now'}
+                    {program.price > 0
+                      ? `Enroll Now · ₹${program.price.toLocaleString('en-IN')}`
+                      : 'Enroll Now · Free'}
                   </Link>
                 </div>
               </div>

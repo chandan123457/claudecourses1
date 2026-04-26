@@ -317,8 +317,16 @@ const AuthPage = () => {
 
       console.log('✅ Sign in successful!');
 
-      // Redirect to dashboard
-      navigate('/dashboard');
+      const claimToken = searchParams.get('claimToken');
+      const enrollProgramId = searchParams.get('enrollProgramId');
+      if (claimToken) {
+        await api.post('/programs/payment/claim', { token: claimToken });
+      } else if (enrollProgramId) {
+        await api.post('/programs/enroll', { programId: parseInt(enrollProgramId) });
+      }
+
+      // Redirect to requested destination, defaulting to dashboard.
+      navigate(searchParams.get('redirect') || '/dashboard');
     } catch (err) {
       console.error('❌ Error signing in:', err);
 
@@ -328,7 +336,7 @@ const AuthPage = () => {
       } else if (err.code === 'auth/too-many-requests') {
         setError('Too many failed attempts. Try again later.');
       } else {
-        setError('Invalid email or password.');
+        setError(err.response?.data?.message || 'Invalid email or password.');
       }
     } finally {
       setLoading(false);
