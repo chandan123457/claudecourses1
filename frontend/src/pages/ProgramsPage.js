@@ -1,38 +1,18 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useDashboard } from '../contexts/DashboardContext';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 
-// ── Constants ────────────────────────────────────────────────
-
-const DOMAIN_DOTS = {
-  'Engineering & Tech':   'bg-yellow-400',
-  'Business Management':  'bg-blue-400',
-  'Data Science':         'bg-purple-400',
-  'Product Design':       'bg-pink-400',
-  'Marketing & Growth':   'bg-green-400',
-};
-
-const DOMAIN_CARD_COLORS = {
-  'Engineering & Tech':   { bg: 'from-yellow-400 to-orange-400',  text: 'text-white' },
-  'Business Management':  { bg: 'from-blue-500 to-blue-700',      text: 'text-white' },
-  'Data Science':         { bg: 'from-purple-500 to-violet-700',  text: 'text-white' },
-  'Product Design':       { bg: 'from-pink-400 to-rose-500',      text: 'text-white' },
-  'Marketing & Growth':   { bg: 'from-green-400 to-teal-500',     text: 'text-white' },
-};
-
-const LEVEL_COLORS = {
-  Beginner:     'bg-green-100 text-green-700',
-  Intermediate: 'bg-orange-100 text-orange-700',
-  Advanced:     'bg-red-100 text-red-700',
-};
-
-// Duration options come from the backend via filterOptions.durations (admin-managed)
-
 const PAGE_SIZE = 6;
 
-// ── Main Page ────────────────────────────────────────────────
+const DOMAIN_CARD_COLORS = {
+  'Engineering & Tech': { gradient: 'from-[#2B2F36] via-[#4A4338] to-[#9A7A2F]', badge: 'Engineering' },
+  'Business Management': { gradient: 'from-[#173255] via-[#224D7D] to-[#3C77B7]', badge: 'Management' },
+  'Data Science': { gradient: 'from-[#22234E] via-[#2F3E84] to-[#6A5EEB]', badge: 'Data' },
+  'Product Design': { gradient: 'from-[#5A3119] via-[#8A4D23] to-[#C56C28]', badge: 'Product Design' },
+  'Marketing & Growth': { gradient: 'from-[#0F4D46] via-[#11786C] to-[#1BB4A0]', badge: 'Marketing' },
+};
 
 const ProgramsPage = () => {
   const navigate = useNavigate();
@@ -52,17 +32,35 @@ const ProgramsPage = () => {
     search: '',
     page: 1,
   });
-  const [sortBy, setSortBy]           = useState('Popularity');
+  const [sortBy, setSortBy] = useState('Popularity');
   const [savedPrograms, setSavedPrograms] = useState(new Set());
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
-  useEffect(() => { fetchFilterOptions(); }, [fetchFilterOptions]);
+  useEffect(() => {
+    fetchFilterOptions();
+  }, [fetchFilterOptions]);
 
-  const load = useCallback((f) => { fetchPrograms(f); }, [fetchPrograms]);
-  useEffect(() => { load(filters); }, [filters, load]);
+  const loadPrograms = useCallback((nextFilters) => {
+    fetchPrograms(nextFilters);
+  }, [fetchPrograms]);
+
+  useEffect(() => {
+    loadPrograms(filters);
+  }, [filters, loadPrograms]);
 
   const setFilter = (key, value) =>
-    setFilters((prev) => ({ ...prev, [key]: prev[key] === value ? '' : value, page: 1 }));
+    setFilters((prev) => ({
+      ...prev,
+      [key]: prev[key] === value ? '' : value,
+      page: 1,
+    }));
+
+  const setSearch = (value) =>
+    setFilters((prev) => ({
+      ...prev,
+      search: value,
+      page: 1,
+    }));
 
   const clearFilters = () =>
     setFilters({ domain: '', level: '', duration: '', search: '', page: 1 });
@@ -78,547 +76,531 @@ const ProgramsPage = () => {
       return next;
     });
 
-  const activeCount = [filters.domain, filters.level, filters.duration].filter(Boolean).length;
-  const domains   = filterOptions?.domains   || [];
-  const levels    = filterOptions?.levels    || ['Beginner', 'Intermediate', 'Advanced'];
+  const domains = filterOptions?.domains || [];
+  const levels = filterOptions?.levels || ['Beginner', 'Intermediate', 'Advanced'];
   const durations = filterOptions?.durations || [];
 
-  // domain counts derived from current program list (approximate)
-  const domainCounts = programs.reduce((acc, p) => {
-    acc[p.domain] = (acc[p.domain] || 0) + 1;
-    return acc;
-  }, {});
+  const domainCounts = useMemo(
+    () => programs.reduce((acc, program) => {
+      acc[program.domain] = (acc[program.domain] || 0) + 1;
+      return acc;
+    }, {}),
+    [programs]
+  );
 
-  const total  = programsPagination?.total || programs.length;
-  const page   = programsPagination?.page  || filters.page;
-  const from   = (page - 1) * PAGE_SIZE + 1;
-  const to     = Math.min(page * PAGE_SIZE, total);
+  const sortedPrograms = useMemo(() => {
+    return [...programs].sort((a, b) => {
+      if (sortBy === 'Popularity') return (b._count?.enrollments || 0) - (a._count?.enrollments || 0);
+      if (sortBy === 'Newest') return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      if (sortBy === 'Level') {
+        const rank = { Beginner: 1, Intermediate: 2, Advanced: 3 };
+        return (rank[b.level] || 0) - (rank[a.level] || 0);
+      }
+      if (sortBy === 'Duration') return parseDurationWeeks(b.duration) - parseDurationWeeks(a.duration);
+      return 0;
+    });
+  }, [programs, sortBy]);
+
+  const total = programsPagination?.total || programs.length;
+  const page = programsPagination?.page || filters.page;
+  const totalPages = programsPagination?.totalPages || 1;
+  const from = total ? (page - 1) * PAGE_SIZE + 1 : 0;
+  const to = total ? Math.min(page * PAGE_SIZE, total) : 0;
+  const activeCount = [filters.domain, filters.level, filters.duration].filter(Boolean).length;
 
   return (
     <DashboardLayout>
-      <div className="flex min-h-[calc(100vh-64px)]">
-
-        {/* ── Left Sidebar ──────────────────────────────────── */}
-        <aside className="hidden lg:flex flex-col w-60 xl:w-64 bg-white border-r border-gray-100 flex-shrink-0 sticky top-16 self-start h-[calc(100vh-64px)] overflow-y-auto">
-          <div className="px-5 py-5">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <span className="flex items-center gap-2 text-sm font-bold text-gray-900">
-                <svg className="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                </svg>
-                Filters
-              </span>
-              {activeCount > 0 && (
-                <button
-                  onClick={clearFilters}
-                  className="text-xs font-bold text-gray-400 hover:text-gray-700 tracking-widest uppercase"
-                >
-                  Clear All
-                </button>
-              )}
-            </div>
-
-            {/* Domain */}
-            <FilterGroup title="Domain">
-              {domains.map((d) => (
-                <button
-                  key={d}
-                  onClick={() => setFilter('domain', d)}
-                  className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm transition-all group ${
-                    filters.domain === d
-                      ? 'bg-yellow-50'
-                      : 'hover:bg-gray-50'
-                  }`}
-                >
-                  <span
-                    className={`w-2.5 h-2.5 rounded-sm flex-shrink-0 ${
-                      DOMAIN_DOTS[d] || 'bg-gray-300'
-                    } ${filters.domain === d ? 'opacity-100' : 'opacity-60 group-hover:opacity-100'}`}
-                  />
-                  <span className={`flex-1 text-left truncate ${
-                    filters.domain === d ? 'text-gray-900 font-semibold' : 'text-gray-600'
-                  }`}>
-                    {d}
-                  </span>
-                  <span className="text-xs text-gray-400 flex-shrink-0">
-                    {programsPagination?.domainCounts?.[d] || ''}
-                  </span>
-                </button>
-              ))}
-            </FilterGroup>
-
-            <div className="border-t border-gray-100 my-4" />
-
-            {/* Skill Level */}
-            <FilterGroup title="Skill Level">
-              {levels.map((l) => (
-                <button
-                  key={l}
-                  onClick={() => setFilter('level', l)}
-                  className={`w-full flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm transition-all ${
-                    filters.level === l
-                      ? 'bg-yellow-50 text-gray-900 font-semibold'
-                      : 'text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
-                  <span
-                    className={`w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-all ${
-                      filters.level === l
-                        ? 'border-yellow-400 bg-yellow-400'
-                        : 'border-gray-300'
-                    }`}
-                  >
-                    {filters.level === l && (
-                      <span className="w-1.5 h-1.5 bg-white rounded-full" />
-                    )}
-                  </span>
-                  {l}
-                </button>
-              ))}
-            </FilterGroup>
-
-            <div className="border-t border-gray-100 my-4" />
-
-            {/* Duration — values come from admin-managed backend data */}
-            <FilterGroup title="Duration">
-              {durations.length === 0 ? (
-                <p className="text-xs text-gray-400">No durations available</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {durations.map((d) => (
-                    <button
-                      key={d}
-                      onClick={() => setFilter('duration', d)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                        filters.duration === d
-                          ? 'bg-primary text-secondary'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      {d}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </FilterGroup>
-          </div>
-        </aside>
-
-        {/* ── Mobile Filter Drawer ───────────────────────────── */}
-        {mobileFiltersOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden">
-            <div className="absolute inset-0 bg-black/40" onClick={() => setMobileFiltersOpen(false)} />
-            <div className="absolute left-0 top-0 h-full w-72 bg-white overflow-y-auto shadow-xl">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-                <span className="font-bold text-gray-900">Filters</span>
-                <button onClick={() => setMobileFiltersOpen(false)}>
-                  <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-              <div className="px-5 py-5 space-y-5">
-                <FilterGroup title="Domain">
-                  {domains.map((d) => (
-                    <button key={d} onClick={() => setFilter('domain', d)}
-                      className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm ${
-                        filters.domain === d ? 'bg-yellow-50 font-semibold text-gray-900' : 'text-gray-600'
-                      }`}>
-                      <span className={`w-2 h-2 rounded-sm ${DOMAIN_DOTS[d] || 'bg-gray-300'}`} />
-                      {d}
-                    </button>
-                  ))}
-                </FilterGroup>
-                <FilterGroup title="Skill Level">
-                  {levels.map((l) => (
-                    <button key={l} onClick={() => setFilter('level', l)}
-                      className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm ${
-                        filters.level === l ? 'bg-yellow-50 font-semibold text-gray-900' : 'text-gray-600'
-                      }`}>
-                      <span className={`w-3 h-3 rounded-full border-2 ${
-                        filters.level === l ? 'border-yellow-400 bg-yellow-400' : 'border-gray-300'
-                      }`} />
-                      {l}
-                    </button>
-                  ))}
-                </FilterGroup>
-                <FilterGroup title="Duration">
-                  <div className="flex flex-wrap gap-2">
-                    {durations.map((d) => (
-                      <button key={d} onClick={() => setFilter('duration', d)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-semibold ${
-                          filters.duration === d ? 'bg-primary text-secondary' : 'bg-gray-100 text-gray-600'
-                        }`}>
-                        {d}
-                      </button>
-                    ))}
+      <div className="min-h-[calc(100vh-68px)] bg-[#F5F5F2]">
+        <div className="flex min-h-[calc(100vh-68px)]">
+          <aside className="hidden w-[320px] flex-shrink-0 border-r border-[#E4E1DA] bg-[#FAFAF8] xl:block">
+            <div className="sticky top-[68px] h-[calc(100vh-68px)] overflow-y-auto px-6 pb-10 pt-7">
+              <div className="border-t border-[#CFCBC2] pt-10">
+                <div className="flex items-center justify-between border-b border-[#D9D5CD] pb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-sm bg-[#FFF3C9] text-[#E6B408]">
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M4 6h16M7 12h10M10 18h4" />
+                      </svg>
+                    </span>
+                    <span className="text-[18px] font-bold text-[#161616]">Filters</span>
                   </div>
-                </FilterGroup>
-              </div>
-            </div>
-          </div>
-        )}
+                  <button
+                    onClick={clearFilters}
+                    className="text-sm font-semibold uppercase tracking-[0.04em] text-[#84807A] transition-all hover:text-[#161616]"
+                  >
+                    Clear All
+                  </button>
+                </div>
 
-        {/* ── Main Content ──────────────────────────────────── */}
-        <div className="flex-1 flex flex-col min-w-0">
+                <div className="space-y-9 pt-10">
+                  <FilterSection title="DOMAIN">
+                    {domains.map((domain) => (
+                      <FilterCheckRow
+                        key={domain}
+                        label={domain}
+                        active={filters.domain === domain}
+                        count={domainCounts[domain] || 0}
+                        onClick={() => setFilter('domain', domain)}
+                      />
+                    ))}
+                  </FilterSection>
 
-          {/* Top bar: title + search + sort */}
-          <div className="bg-white border-b border-gray-100 px-5 sm:px-6 py-4">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              {/* Title + mobile filter btn */}
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setMobileFiltersOpen(true)}
-                  className="lg:hidden p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                  </svg>
-                </button>
-                <h1 className="text-xl font-bold text-gray-900">All Programs</h1>
-              </div>
+                  <Divider />
 
-              {/* Search */}
-              <div className="relative flex-1">
-                <svg className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  type="text"
-                  placeholder="Search for skills, domains, or certifications..."
-                  value={filters.search}
-                  onChange={(e) => setFilter('search', e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent bg-gray-50 focus:bg-white transition-all"
-                />
-              </div>
+                  <FilterSection title="SKILL LEVEL">
+                    {levels.map((level) => (
+                      <FilterCheckRow
+                        key={level}
+                        label={level}
+                        active={filters.level === level}
+                        onClick={() => setFilter('level', level)}
+                      />
+                    ))}
+                  </FilterSection>
 
-              {/* Sort dropdown */}
-              <div className="relative flex-shrink-0">
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="appearance-none border border-gray-200 rounded-xl pl-3 pr-8 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-yellow-400 bg-white cursor-pointer font-medium"
-                >
-                  <option value="Popularity">Sort by: Popularity</option>
-                  <option value="Newest">Sort by: Newest</option>
-                  <option value="Level">Sort by: Level</option>
-                  <option value="Duration">Sort by: Duration</option>
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center">
-                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                  <Divider />
+
+                  <FilterSection title="DURATION">
+                    <div className="flex flex-wrap gap-3">
+                      {durations.map((duration) => (
+                        <DurationChip
+                          key={duration}
+                          label={duration}
+                          active={filters.duration === duration}
+                          onClick={() => setFilter('duration', duration)}
+                        />
+                      ))}
+                    </div>
+                  </FilterSection>
                 </div>
               </div>
             </div>
+          </aside>
 
-            {/* Active filter chips */}
-            {activeCount > 0 && (
-              <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-gray-50">
-                {filters.domain && (
-                  <FilterChip label={filters.domain} onRemove={() => setFilter('domain', '')} />
-                )}
-                {filters.level && (
-                  <FilterChip label={filters.level} onRemove={() => setFilter('level', '')} />
-                )}
-                {filters.duration && (
-                  <FilterChip label={filters.duration} onRemove={() => setFilter('duration', '')} />
-                )}
-                <button
-                  onClick={clearFilters}
-                  className="text-xs text-gray-400 hover:text-gray-700 font-medium transition-all"
-                >
-                  Clear all
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Programs Grid */}
-          <div className="flex-1 px-5 sm:px-6 py-6">
-            {programsLoading ? (
-              <div className="flex items-center justify-center py-20">
-                <LoadingSpinner message="Loading programs..." />
-              </div>
-            ) : programs.length === 0 ? (
-              <EmptyState onClear={clearFilters} />
-            ) : (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 mb-8">
-                  {programs.map((program) => (
-                    <ProgramCard
-                      key={program.id}
-                      program={program}
-                      onEnroll={handleEnroll}
-                      enrolling={false}
-                      enrolled={false}
-                      saved={savedPrograms.has(program.id)}
-                      onSave={() => toggleSave(program.id)}
-                    />
-                  ))}
+          {mobileFiltersOpen && (
+            <div className="fixed inset-0 z-50 xl:hidden">
+              <div className="absolute inset-0 bg-black/40" onClick={() => setMobileFiltersOpen(false)} />
+              <div className="absolute left-0 top-0 h-full w-full max-w-[340px] overflow-y-auto bg-[#FAFAF8] shadow-2xl">
+                <div className="flex items-center justify-between border-b border-[#DDD8CD] px-5 py-4">
+                  <span className="text-lg font-bold text-[#161616]">Filters</span>
+                  <button
+                    onClick={() => setMobileFiltersOpen(false)}
+                    className="rounded-xl border border-[#E0DDD6] p-2 text-[#6B6B6B]"
+                    aria-label="Close filters"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
+                <div className="px-5 py-6">
+                  <div className="space-y-8">
+                    <FilterSection title="DOMAIN">
+                      {domains.map((domain) => (
+                        <FilterCheckRow
+                          key={domain}
+                          label={domain}
+                          active={filters.domain === domain}
+                          count={domainCounts[domain] || 0}
+                          onClick={() => setFilter('domain', domain)}
+                        />
+                      ))}
+                    </FilterSection>
 
-                {/* Pagination */}
-                <Pagination
-                  current={page}
-                  total={programsPagination?.totalPages || 1}
-                  from={from}
-                  to={to}
-                  count={total}
-                  onPage={(p) => setFilters((prev) => ({ ...prev, page: p }))}
-                />
-              </>
-            )}
-          </div>
+                    <Divider />
+
+                    <FilterSection title="SKILL LEVEL">
+                      {levels.map((level) => (
+                        <FilterCheckRow
+                          key={level}
+                          label={level}
+                          active={filters.level === level}
+                          onClick={() => setFilter('level', level)}
+                        />
+                      ))}
+                    </FilterSection>
+
+                    <Divider />
+
+                    <FilterSection title="DURATION">
+                      <div className="flex flex-wrap gap-3">
+                        {durations.map((duration) => (
+                          <DurationChip
+                            key={duration}
+                            label={duration}
+                            active={filters.duration === duration}
+                            onClick={() => setFilter('duration', duration)}
+                          />
+                        ))}
+                      </div>
+                    </FilterSection>
+
+                    {activeCount > 0 && (
+                      <button
+                        onClick={clearFilters}
+                        className="inline-flex h-11 items-center justify-center rounded-xl bg-[#161616] px-5 text-sm font-semibold text-white"
+                      >
+                        Reset filters
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <main className="min-w-0 flex-1">
+            <div className="px-7 py-8 xl:px-8">
+              <div className="mx-auto max-w-[1040px]">
+                <div className="flex flex-col gap-7">
+                  <div className="flex flex-col gap-5">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => setMobileFiltersOpen(true)}
+                          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#DFDBD2] bg-white text-[#5A5A5A] shadow-[0_6px_20px_rgba(0,0,0,0.05)] xl:hidden"
+                        >
+                          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M4 6h16M7 12h10M10 18h4" />
+                          </svg>
+                        </button>
+                        <h1 className="text-[22px] font-bold tracking-[-0.03em] text-[#161616] sm:text-[24px]">
+                          All Programs
+                        </h1>
+                      </div>
+
+                      <div className="relative w-full max-w-[340px]">
+                        <select
+                          value={sortBy}
+                          onChange={(event) => setSortBy(event.target.value)}
+                          className="h-[46px] w-full appearance-none rounded-xl border border-[#E3E0D8] bg-white pl-6 pr-12 text-[15px] font-medium text-[#161616] shadow-[0_14px_30px_rgba(0,0,0,0.10)] outline-none"
+                        >
+                          <option value="Popularity">Sort by: Popularity</option>
+                          <option value="Newest">Sort by: Newest</option>
+                          <option value="Level">Sort by: Level</option>
+                          <option value="Duration">Sort by: Duration</option>
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[#262626]">
+                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="relative">
+                      <svg className="pointer-events-none absolute left-5 top-1/2 h-6 w-6 -translate-y-1/2 text-[#888888]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.3-4.3m1.8-5.2a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      <input
+                        type="text"
+                        placeholder="Search for skills, domains, or certifications ..."
+                        value={filters.search}
+                        onChange={(event) => setSearch(event.target.value)}
+                        className="h-[54px] w-full rounded-[14px] border border-[#E3E0D8] bg-white pl-16 pr-4 text-[15px] text-[#555555] shadow-[0_14px_30px_rgba(0,0,0,0.10)] outline-none placeholder:text-[#8C8C8C] focus:border-[#E8B80D] focus:ring-4 focus:ring-[#F1C232]/15"
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      {filters.domain && (
+                        <ActiveChip
+                          label={shortDomainLabel(filters.domain)}
+                          onRemove={() => setFilter('domain', '')}
+                        />
+                      )}
+                      {filters.duration && (
+                        <ActiveChip
+                          label={filters.duration}
+                          onRemove={() => setFilter('duration', '')}
+                        />
+                      )}
+                      {filters.level && (
+                        <ActiveChip
+                          label={filters.level}
+                          onRemove={() => setFilter('level', '')}
+                        />
+                      )}
+                      {activeCount > 0 && (
+                        <button
+                          onClick={clearFilters}
+                          className="text-[15px] font-medium text-[#737373] transition-all hover:text-[#161616]"
+                        >
+                          Clear all
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {programsLoading ? (
+                    <div className="flex items-center justify-center py-24">
+                      <LoadingSpinner message="Loading programs..." />
+                    </div>
+                  ) : sortedPrograms.length === 0 ? (
+                    <EmptyState onClear={clearFilters} />
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-1 gap-7 md:grid-cols-2 2xl:grid-cols-3">
+                        {sortedPrograms.map((program) => (
+                          <ProgramCard
+                            key={program.id}
+                            program={program}
+                            onEnroll={handleEnroll}
+                            saved={savedPrograms.has(program.id)}
+                            onSave={() => toggleSave(program.id)}
+                          />
+                        ))}
+                      </div>
+
+                      <div className="border-t border-[#D6D2CA] pt-10">
+                        <Pagination
+                          current={page}
+                          total={totalPages}
+                          from={from}
+                          to={to}
+                          count={total}
+                          onPage={(nextPage) => setFilters((prev) => ({ ...prev, page: nextPage }))}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </main>
         </div>
       </div>
     </DashboardLayout>
   );
 };
 
-// ── FilterGroup ──────────────────────────────────────────────
-
-const FilterGroup = ({ title, children }) => (
-  <div>
-    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">{title}</p>
-    <div className="space-y-0.5">{children}</div>
-  </div>
+const FilterSection = ({ title, children }) => (
+  <section>
+    <p className="mb-5 text-[15px] font-bold uppercase tracking-[-0.01em] text-[#151515]">{title}</p>
+    <div className="space-y-4">{children}</div>
+  </section>
 );
 
-// ── FilterChip ───────────────────────────────────────────────
+const Divider = () => <div className="border-t border-[#D6D2CA]" />;
 
-const FilterChip = ({ label, onRemove }) => (
-  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-secondary text-xs font-semibold rounded-full border border-primary/30">
+const FilterCheckRow = ({ label, active, count, onClick }) => (
+  <button
+    onClick={onClick}
+    className="flex w-full items-center gap-4 text-left"
+  >
+    <span
+      className={`flex h-6 w-6 items-center justify-center rounded-[4px] border text-[13px] transition-all ${
+        active
+          ? 'border-[#E8B80D] bg-[#E8B80D] text-white'
+          : 'border-[#D1D1D1] bg-white text-transparent'
+      }`}
+    >
+      ✓
+    </span>
+    <span className={`flex-1 text-[17px] leading-none ${active ? 'font-medium text-[#222222]' : 'text-[#626262]'}`}>
+      {label}
+    </span>
+    {typeof count === 'number' && count > 0 ? (
+      <span className="inline-flex min-w-[38px] items-center justify-center rounded-full bg-[#EEF0F3] px-3 py-0.5 text-[14px] font-semibold text-[#A0A7B4]">
+        {count}
+      </span>
+    ) : null}
+  </button>
+);
+
+const DurationChip = ({ label, active, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`rounded-[13px] border px-4 py-2 text-[14px] font-medium transition-all ${
+      active
+        ? 'border-[#E8B80D] bg-[#FFF7DA] text-[#D1A10C]'
+        : 'border-[#C9CCD2] bg-white text-[#1E1E1E] hover:border-[#B6BBC4]'
+    }`}
+  >
+    {label}
+  </button>
+);
+
+const ActiveChip = ({ label, onRemove }) => (
+  <span className="inline-flex items-center gap-3 rounded-full border border-[#F3E1A1] bg-white px-4 py-2 text-[15px] font-medium text-[#D1A10C] shadow-sm">
     {label}
     <button
       onClick={onRemove}
-      className="text-yellow-600 hover:text-yellow-900 transition-all"
-      aria-label={`Remove ${label} filter`}
+      aria-label={`Remove ${label}`}
+      className="text-[#D1A10C] transition-all hover:text-[#161616]"
     >
-      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M6 18L18 6M6 6l12 12" />
       </svg>
     </button>
   </span>
 );
 
-// ── ProgramCard ──────────────────────────────────────────────
-
-const ProgramCard = ({ program, onEnroll, enrolling, enrolled, saved, onSave }) => {
-  const levelColor = LEVEL_COLORS[program.level] || 'bg-gray-100 text-gray-600';
-  const domainStyle = DOMAIN_CARD_COLORS[program.domain] || { bg: 'from-gray-300 to-gray-400', text: 'text-white' };
-  const isEnrolled = program.isEnrolled || enrolled;
+const ProgramCard = ({ program, onEnroll, saved, onSave }) => {
+  const style = DOMAIN_CARD_COLORS[program.domain] || { gradient: 'from-[#8792A2] to-[#B0B8C2]', badge: 'Program' };
+  const isEnrolled = program.isEnrolled;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col">
-      {/* ── Thumbnail ── */}
-      <div className="relative h-40 overflow-hidden">
+    <article className="flex h-[490px] flex-col overflow-hidden rounded-[10px] border border-[#DCE2EA] bg-white shadow-[0_4px_18px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_26px_rgba(15,23,42,0.12)]">
+      <div className="relative h-[220px] overflow-hidden">
         {program.thumbnail ? (
-          <img
-            src={program.thumbnail}
-            alt={program.title}
-            className="w-full h-full object-cover"
-          />
+          <img src={program.thumbnail} alt={program.title} className="h-full w-full object-cover" />
         ) : (
-          /* Gradient fallback matching the design */
-          <div className={`w-full h-full bg-gradient-to-br ${domainStyle.bg} flex items-center justify-center relative`}>
-            {/* Abstract decorative circles */}
-            <div className="absolute inset-0 overflow-hidden">
-              <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full" />
-              <div className="absolute bottom-2 -left-6 w-20 h-20 bg-white/10 rounded-full" />
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-white/10 rounded-full" />
-            </div>
-            {/* Domain short label */}
-            <span className={`relative z-10 text-lg font-black ${domainStyle.text} opacity-30 text-center px-4`}>
-              {program.domain?.split(' ')[0]}
+          <div className={`relative flex h-full w-full items-center justify-center bg-gradient-to-br ${style.gradient}`}>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_25%,rgba(255,255,255,0.14),transparent_18%),radial-gradient(circle_at_70%_60%,rgba(255,255,255,0.1),transparent_20%)]" />
+            <span className="relative z-10 px-4 text-center text-lg font-black text-white/40">
+              {style.badge}
             </span>
           </div>
         )}
 
-        {/* Domain badge overlay — top left */}
-        <span className="absolute top-3 left-3 px-2 py-0.5 bg-black/50 backdrop-blur-sm text-white text-xs font-semibold rounded-md">
-          {program.domain?.split(' ')[0] || 'Program'}
+        <span className="absolute left-3 top-5 inline-flex h-[30px] items-center rounded-[4px] bg-white px-4 text-[14px] font-medium text-[#111111] shadow-sm">
+          {style.badge}
         </span>
 
-        {/* Bookmark button — top right */}
         <button
-          onClick={(e) => { e.stopPropagation(); onSave(); }}
-          className={`absolute top-3 right-3 w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
-            saved
-              ? 'bg-primary text-secondary'
-              : 'bg-black/40 backdrop-blur-sm text-white hover:bg-black/60'
-          }`}
+          onClick={(event) => {
+            event.stopPropagation();
+            onSave();
+          }}
           aria-label="Save program"
+          className="absolute right-3 top-5 flex h-8 w-8 items-center justify-center rounded-[6px] border border-[#D7DCE3] bg-white text-[#111111] transition-all hover:bg-[#FAFAFA]"
         >
-          <svg className="w-3.5 h-3.5" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+          <svg className="h-4 w-4" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
           </svg>
         </button>
       </div>
 
-      {/* ── Card Body ── */}
-      <div className="p-4 flex flex-col flex-1 gap-3">
-        {/* Title */}
-        <h3 className="font-bold text-gray-900 text-sm leading-snug line-clamp-2">
+      <div className="flex flex-1 flex-col px-3 pb-4 pt-3">
+        <h3 className="min-h-[74px] text-[24px] font-semibold leading-[1.15] tracking-[-0.02em] text-[#111827]">
           {program.title}
         </h3>
 
-        {/* Description */}
-        <p className="text-xs text-gray-500 line-clamp-3 leading-relaxed flex-1">
+        <p
+          className="mt-2 min-h-[56px] text-[14px] leading-7 text-[#6B7280]"
+          style={{
+            display: '-webkit-box',
+            WebkitLineClamp: 3,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+          }}
+        >
           {program.description}
         </p>
 
-        {/* Meta: duration + certificate */}
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-1.5 text-xs text-gray-500">
-            <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span>{program.duration || '6 Weeks'}</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-gray-500">
-            <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-            </svg>
-            <span>{program.certificateType || 'Professional Certificate'}</span>
+        <div className="mt-4 border-t border-[#D7DCE3] pt-4">
+          <div className="space-y-2.5">
+            <MetaRow icon="clock" text={program.duration || '6 Weeks'} />
+            <MetaRow icon="certificate" text={`Professional Certificate${program.level ? ` · ${program.level}` : ''}`} />
           </div>
         </div>
 
-        {/* Level badge */}
-        <div>
-          <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full ${levelColor}`}>
-            {program.level || 'Advanced'}
-          </span>
-        </div>
-
-        {/* Enroll / Continue button */}
         {isEnrolled ? (
-          <div className="flex flex-col gap-2">
-            <span className="w-full py-2 rounded-xl text-xs font-bold text-center bg-green-100 text-green-700 flex items-center justify-center gap-1.5">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="mt-auto flex flex-col gap-2 pt-4">
+            <span className="flex w-full items-center justify-center gap-1.5 rounded-[8px] bg-green-100 py-2 text-xs font-bold text-green-700">
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
               </svg>
               Enrolled
             </span>
             <Link
               to={`/programs/${program.id}/learn`}
-              className="w-full py-2.5 rounded-xl text-sm font-bold text-center bg-primary text-secondary hover:opacity-90 active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
+              className="flex h-[46px] items-center justify-center rounded-[8px] bg-[#F4C20D] text-[17px] font-bold text-[#111827] transition-all hover:brightness-95"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
               Continue Learning
             </Link>
           </div>
         ) : (
           <button
             onClick={() => onEnroll(program.id)}
-            disabled={enrolling}
-            className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all ${
-              enrolling
-                ? 'bg-primary/50 text-secondary cursor-wait'
-                : 'bg-primary text-secondary hover:opacity-90 active:scale-[0.98]'
-            }`}
+            className="mt-auto h-[46px] w-full rounded-[8px] bg-[#F4C20D] text-[17px] font-bold text-[#111827] transition-all hover:brightness-95"
           >
-            {enrolling ? 'Loading...' : (
-              program.price > 0
-                ? `Enroll Now · ₹${program.price.toLocaleString('en-IN')}`
-                : 'Enroll Now · Free'
-            )}
+            Enroll Now
           </button>
         )}
       </div>
-    </div>
+    </article>
   );
 };
 
-// ── EmptyState ───────────────────────────────────────────────
+const MetaRow = ({ icon, text }) => (
+  <div className="flex items-center gap-3 text-[14px] text-[#6B7280]">
+    {icon === 'clock' && (
+      <svg className="h-5 w-5 flex-shrink-0 text-[#F0B90B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    )}
+    {icon === 'certificate' && (
+      <svg className="h-5 w-5 flex-shrink-0 text-[#F0B90B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+      </svg>
+    )}
+    {icon === 'level' && (
+      <svg className="h-5 w-5 flex-shrink-0 text-[#F0B90B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 17 17 7M7 12h5v5" />
+      </svg>
+    )}
+    <span>{text}</span>
+  </div>
+);
 
 const EmptyState = ({ onClear }) => (
-  <div className="flex flex-col items-center justify-center py-24 text-center">
-    <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
-      <svg className="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-          d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  <div className="flex flex-col items-center justify-center rounded-[18px] border border-dashed border-[#D7D2C8] bg-white py-24 text-center shadow-sm">
+    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F2F2EF]">
+      <svg className="h-8 w-8 text-[#B6B6B6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     </div>
-    <p className="text-gray-600 font-semibold mb-1">No programs found</p>
-    <p className="text-gray-400 text-sm mb-5">Try adjusting your filters or search terms</p>
+    <p className="mb-1 text-lg font-semibold text-[#2A2A2A]">No programs found</p>
+    <p className="mb-6 text-sm text-[#7A7A7A]">Try adjusting your filters or search terms.</p>
     <button
       onClick={onClear}
-      className="px-5 py-2.5 bg-primary text-secondary font-bold rounded-xl text-sm hover:opacity-90 transition-all"
+      className="rounded-xl bg-[#F3C206] px-5 py-2.5 text-sm font-bold text-[#111111] transition-all hover:brightness-95"
     >
       Clear All Filters
     </button>
   </div>
 );
 
-// ── Pagination ───────────────────────────────────────────────
-
 const Pagination = ({ current, total, from, to, count, onPage }) => {
   const pages = buildPageRange(current, total);
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 pb-4">
-      <p className="text-sm text-gray-400">
-        Showing{' '}
-        <span className="text-gray-600 font-medium">{from}</span>
-        {' '}to{' '}
-        <span className="text-gray-600 font-medium">{to}</span>
-        {' '}of{' '}
-        <span className="text-gray-600 font-medium">{count}</span>
-        {' '}results
+    <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+      <p className="text-[18px] font-semibold text-[#6A6A6A]">
+        Showing {from} to {to} of {count} results
       </p>
 
       {total > 1 && (
-        <div className="flex items-center gap-1">
-          {/* Prev */}
-          <NavBtn
-            onClick={() => onPage(current - 1)}
-            disabled={current <= 1}
-            aria="Previous page"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="flex items-center gap-2">
+          <NavBtn onClick={() => onPage(current - 1)} disabled={current <= 1} aria="Previous page">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </NavBtn>
 
-          {pages.map((p, i) =>
-            p === '…' ? (
-              <span key={`ellipsis-${i}`} className="w-8 h-8 flex items-center justify-center text-gray-400 text-sm">
+          {pages.map((entry, index) =>
+            entry === '…' ? (
+              <span key={`ellipsis-${index}`} className="flex h-8 w-8 items-center justify-center text-sm text-[#7D7D7D]">
                 …
               </span>
             ) : (
               <button
-                key={p}
-                onClick={() => onPage(p)}
-                className={`w-8 h-8 rounded-lg text-xs font-semibold transition-all ${
-                  p === current
-                    ? 'bg-primary text-secondary shadow-sm'
-                    : 'border border-gray-200 text-gray-500 hover:bg-gray-50'
+                key={entry}
+                onClick={() => onPage(entry)}
+                className={`flex h-8 min-w-[32px] items-center justify-center rounded-[6px] border text-xs font-semibold transition-all ${
+                  entry === current
+                    ? 'border-[#6558FF] bg-white text-[#6558FF]'
+                    : 'border-[#D8DCE3] bg-white text-[#3B3B3B] hover:bg-[#F8F8F8]'
                 }`}
               >
-                {p}
+                {entry}
               </button>
             )
           )}
 
-          {/* Next */}
-          <NavBtn
-            onClick={() => onPage(current + 1)}
-            disabled={current >= total}
-            aria="Next page"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <NavBtn onClick={() => onPage(current + 1)} disabled={current >= total} aria="Next page">
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </NavBtn>
@@ -633,19 +615,35 @@ const NavBtn = ({ children, onClick, disabled, aria }) => (
     onClick={onClick}
     disabled={disabled}
     aria-label={aria}
-    className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+    className="flex h-8 w-8 items-center justify-center rounded-[6px] border border-[#D8DCE3] bg-[#EEF0F3] text-[#9AA0AA] transition-all hover:bg-[#E6E8EC] disabled:cursor-not-allowed disabled:opacity-40"
   >
     {children}
   </button>
 );
 
-// Build smart page range with ellipsis
+function shortDomainLabel(value = '') {
+  const map = {
+    'Engineering & Tech': 'Engineering',
+    'Business Management': 'Management',
+    'Data Science': 'Data Science',
+    'Product Design': 'Product Design',
+    'Marketing & Growth': 'Marketing',
+  };
+  return map[value] || value;
+}
+
+function parseDurationWeeks(value = '') {
+  const match = String(value).match(/(\d+)/);
+  return match ? Number(match[1]) : 0;
+}
+
 function buildPageRange(current, total) {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const pages = [];
-  pages.push(1);
+  if (total <= 7) return Array.from({ length: total }, (_, index) => index + 1);
+  const pages = [1];
   if (current > 3) pages.push('…');
-  for (let p = Math.max(2, current - 1); p <= Math.min(total - 1, current + 1); p++) pages.push(p);
+  for (let page = Math.max(2, current - 1); page <= Math.min(total - 1, current + 1); page += 1) {
+    pages.push(page);
+  }
   if (current < total - 2) pages.push('…');
   pages.push(total);
   return pages;

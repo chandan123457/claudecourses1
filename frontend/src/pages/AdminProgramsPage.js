@@ -4,9 +4,7 @@ import { useAdmin, createAdminApi } from '../contexts/AdminContext';
 
 const DOMAINS = ['Engineering & Tech', 'Data Science', 'Business Management', 'Product Design', 'Marketing & Growth'];
 const LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
-const DURATIONS = ['2-4 Weeks', '1-3 Months', '3-6 Months', '6+ Months'];
-
-const EMPTY_PROGRAM = { title: '', description: '', domain: 'Engineering & Tech', level: 'Beginner', duration: '2-4 Weeks', thumbnail: '', instructor: '', price: '', isActive: true };
+const EMPTY_PROGRAM = { title: '', description: '', domain: 'Engineering & Tech', level: 'Beginner', duration: '', thumbnail: '', instructor: '', price: '', isActive: true };
 const EMPTY_MODULE = { title: '', description: '', order: 0, isLocked: false };
 const EMPTY_LESSON = { title: '', description: '', duration: '', videoUrl: '', videoUrl360p: '', videoUrl480p: '', videoUrl720p: '', order: 0, keyTakeaway: '', resources: '[]' };
 
@@ -467,7 +465,6 @@ const AdminProgramsPage = () => {
             {[
               { label: 'Domain', key: 'domain', options: DOMAINS },
               { label: 'Level', key: 'level', options: LEVELS },
-              { label: 'Duration', key: 'duration', options: DURATIONS },
             ].map(({ label, key, options }) => (
               <FormField key={key} label={label}>
                 <select value={programForm[key]} onChange={(e) => setProgramForm(p => ({ ...p, [key]: e.target.value }))}
@@ -476,6 +473,16 @@ const AdminProgramsPage = () => {
                 </select>
               </FormField>
             ))}
+            <FormField label="Duration">
+              <input
+                type="text"
+                required
+                value={programForm.duration}
+                onChange={(e) => setProgramForm(p => ({ ...p, duration: e.target.value }))}
+                placeholder="e.g. 8 Weeks or 1-3 Months"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#E4B61A]"
+              />
+            </FormField>
             {editingProgram && (
               <label className="flex items-center gap-3 text-sm text-white/70 cursor-pointer">
                 <input type="checkbox" checked={programForm.isActive} onChange={(e) => setProgramForm(p => ({ ...p, isActive: e.target.checked }))} className="w-4 h-4 accent-[#E4B61A]" />
