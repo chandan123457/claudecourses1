@@ -25,6 +25,9 @@ import UserProfilePage from './pages/UserProfilePage';
 import EnrollVerifyPhonePage from './pages/EnrollVerifyPhonePage';
 import EnrollPaymentPage from './pages/EnrollPaymentPage';
 import CourseContentPage from './pages/CourseContentPage';
+import CertificationLibraryPage from './pages/CertificationLibraryPage';
+import CertificationProgramPage from './pages/CertificationProgramPage';
+import CertificationWorkspacePage from './pages/CertificationWorkspacePage';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
@@ -92,6 +95,15 @@ function App() {
                 } />
                 <Route path="/interviews" element={
                   <ProtectedRoute><InterviewsPage /></ProtectedRoute>
+                } />
+                <Route path="/certification" element={
+                  <ProtectedRoute><CertificationLibraryPage /></ProtectedRoute>
+                } />
+                <Route path="/certification/program/:identifier" element={
+                  <ProtectedRoute><CertificationProgramPage /></ProtectedRoute>
+                } />
+                <Route path="/certification/workspace/:enrollmentId" element={
+                  <ProtectedRoute><CertificationWorkspacePage /></ProtectedRoute>
                 } />
                 <Route path="/profile" element={
                   <ProtectedRoute><UserProfilePage /></ProtectedRoute>

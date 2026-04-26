@@ -8,6 +8,7 @@ import dashboardRoutes from './dashboardRoutes';
 import programRoutes from './programRoutes';
 import interviewRoutes from './interviewRoutes';
 import profileRoutes from './profileRoutes';
+import certificationRoutes from './certificationRoutes';
 
 const router = express.Router();
 
@@ -23,6 +24,7 @@ router.use('/dashboard', dashboardRoutes);
 router.use('/programs', programRoutes);
 router.use('/interviews', interviewRoutes);
 router.use('/profile', profileRoutes);
+router.use('/certification', certificationRoutes);
 
 // Health check
 router.get('/health', (req, res) => {

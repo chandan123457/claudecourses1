@@ -87,6 +87,30 @@ export const uploadVideoToCloudinary = (
   });
 };
 
+export const uploadDocumentToCloudinary = (
+  buffer: Buffer,
+  folder: string,
+  filename?: string
+): Promise<UploadApiResponse> => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: `gradtopro/${folder}`,
+        resource_type: 'raw',
+        public_id: filename ? filename.replace(/\.[^/.]+$/, '') : undefined,
+        use_filename: Boolean(filename),
+        unique_filename: true,
+        overwrite: false,
+      },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result!);
+      }
+    );
+    streamifier.createReadStream(buffer).pipe(uploadStream);
+  });
+};
+
 export const getPublicIdFromUrl = (url: string): string | null => {
   try {
     // Example URL: https://res.cloudinary.com/cloud/image/upload/v123/gradtopro/courses/abc.jpg

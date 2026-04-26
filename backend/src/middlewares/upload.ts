@@ -71,4 +71,27 @@ const videoUpload = multer({
 
 export const uploadVideo = videoUpload.single('video');
 
+// Document upload configuration for certification submissions
+const documentFileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const allowed = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  ];
+
+  if (allowed.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only PDF, DOC, and DOCX files are allowed.'));
+  }
+};
+
+const documentUpload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: documentFileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
+
+export const uploadDocument = documentUpload.single('file');
+
 export default upload;

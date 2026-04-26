@@ -8,6 +8,7 @@ import {
 import { isAdmin } from '../middlewares/auth';
 import { uploadSingle } from '../middlewares/upload';
 import imageController from '../controllers/imageController';
+import { certificationController } from '../controllers/certificationController';
 
 const router = express.Router();
 
@@ -65,6 +66,11 @@ router.patch('/interviews/bookings/:id/confirm', isAdmin, adminController.confir
 // Certification management
 router.get('/certifications', isAdmin, adminController.getAllCertifications);
 router.post('/certifications', isAdmin, adminController.assignCertification);
+router.get('/certification-hub/overview', isAdmin, certificationController.getAdminOverview);
+router.post('/certification-hub/projects', isAdmin, certificationController.createAdminProject);
+router.put('/certification-hub/projects/:projectId', isAdmin, certificationController.updateAdminProject);
+router.patch('/certification-hub/submissions/:submissionId/review', isAdmin, certificationController.reviewSubmission);
+router.post('/certification-hub/submissions/:submissionId/certificate', isAdmin, certificationController.issueCertificate);
 
 // Eligibility management
 router.post('/eligibility', isAdmin, adminController.setEligibility);
