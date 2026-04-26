@@ -303,11 +303,21 @@ export const adminController = {
 
   createInterviewSession: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { userId, topic, interviewer, sessionDate, type } = req.body;
+    const parsedSessionDate = new Date(sessionDate);
+    if (!userId || Number.isNaN(parseInt(userId))) {
+      throw new AppError('Valid User ID is required', 400);
+    }
+    if (Number.isNaN(parsedSessionDate.getTime())) {
+      throw new AppError('Valid session date and time is required', 400);
+    }
+    if (parsedSessionDate <= new Date()) {
+      throw new AppError('Session date and time must be in the future to appear on the dashboard', 400);
+    }
     const session = await interviewService.createSession({
       userId: parseInt(userId),
       topic,
       interviewer,
-      sessionDate: new Date(sessionDate),
+      sessionDate: parsedSessionDate,
       type,
     });
     logger.info('Interview session created by admin', { sessionId: session.id });

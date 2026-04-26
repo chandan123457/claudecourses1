@@ -16,6 +16,7 @@ const AdminInterviewsPage = () => {
   const [sessionForm, setSessionForm] = useState({ userId: '', topic: '', interviewer: '', sessionDate: '', type: 'mock' });
   const [showSessionForm, setShowSessionForm] = useState(false);
   const [sessionSaving, setSessionSaving] = useState(false);
+  const [sessionError, setSessionError] = useState('');
 
   const [resultModal, setResultModal] = useState(null);
   const [resultForm, setResultForm] = useState({ score: '', rating: '', feedback: '', strengths: '', improvements: '' });
@@ -48,13 +49,21 @@ const AdminInterviewsPage = () => {
 
   const handleCreateSession = async (e) => {
     e.preventDefault();
+    setSessionError('');
+    if (new Date(sessionForm.sessionDate) <= new Date()) {
+      setSessionError('Session date and time must be in the future to appear on the dashboard.');
+      return;
+    }
     setSessionSaving(true);
     try {
       await adminApi.post('/admin/interviews/sessions', sessionForm);
       setShowSessionForm(false);
       setSessionForm({ userId: '', topic: '', interviewer: '', sessionDate: '', type: 'mock' });
-      await fetchAll();
-    } catch (err) { console.error(err); }
+      setActiveTab('sessions');
+    } catch (err) {
+      console.error(err);
+      setSessionError(err.response?.data?.message || 'Failed to create interview session');
+    }
     finally { setSessionSaving(false); }
   };
 
@@ -200,6 +209,11 @@ const AdminInterviewsPage = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-[#0F1A2E] border border-white/10 rounded-2xl p-6 w-full max-w-md">
             <h3 className="text-white font-bold mb-4">Create Interview Session</h3>
+            {sessionError && (
+              <div className="mb-4 bg-red-500/10 border border-red-500/20 text-red-300 px-4 py-3 rounded-xl text-sm">
+                {sessionError}
+              </div>
+            )}
             <form onSubmit={handleCreateSession} className="space-y-3">
               {[
                 { label: 'User ID', key: 'userId', type: 'number' },
@@ -209,7 +223,12 @@ const AdminInterviewsPage = () => {
               ].map(({ label, key, type }) => (
                 <div key={key}>
                   <label className="text-xs font-semibold text-white/50 block mb-1">{label}</label>
-                  <input type={type} required value={sessionForm[key]} onChange={e => setSessionForm(p => ({ ...p, [key]: e.target.value }))}
+                  <input
+                    type={type}
+                    required
+                    min={type === 'datetime-local' ? getMinDateTimeLocal() : undefined}
+                    value={sessionForm[key]}
+                    onChange={e => setSessionForm(p => ({ ...p, [key]: e.target.value }))}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm" />
                 </div>
               ))}
@@ -273,6 +292,12 @@ const AdminInterviewsPage = () => {
       )}
     </div>
   );
+};
+
+const getMinDateTimeLocal = () => {
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  return now.toISOString().slice(0, 16);
 };
 
 export default AdminInterviewsPage;

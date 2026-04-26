@@ -119,9 +119,13 @@ const DashboardPage = () => {
                 </Link>
               </div>
             ) : (
-              <div className="space-y-3">
-                {upcomingInterviews.slice(0, 2).map((interview) => (
-                  <UpcomingInterviewCard key={interview.id} interview={interview} />
+              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                {upcomingInterviews.slice(0, 2).map((interview, index, visibleInterviews) => (
+                  <UpcomingInterviewCard
+                    key={interview.id}
+                    interview={interview}
+                    last={index === visibleInterviews.length - 1}
+                  />
                 ))}
               </div>
             )}
@@ -340,7 +344,7 @@ const getDownloadableUrl = (url) => {
   return fileId ? `https://drive.google.com/uc?export=download&id=${fileId}` : url;
 };
 
-const UpcomingInterviewCard = ({ interview }) => {
+const UpcomingInterviewCard = ({ interview, last }) => {
   const date = new Date(interview.sessionDate);
   const isToday = new Date().toDateString() === date.toDateString();
   const isTomorrow =
@@ -352,10 +356,12 @@ const UpcomingInterviewCard = ({ interview }) => {
     : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
   const timeLabel = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-  const isPast = date < new Date();
+  const buttonLabel = interview.source === 'session' && interview.type === 'mock'
+    ? 'Prepare'
+    : 'View Details';
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4">
+    <div className={`px-5 py-4 ${!last ? 'border-b border-gray-100' : ''}`}>
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-bold text-yellow-500 tracking-wide">{dayLabel}</span>
         <span className="text-xs text-gray-400 font-medium">{timeLabel}</span>
@@ -364,9 +370,9 @@ const UpcomingInterviewCard = ({ interview }) => {
       <p className="text-xs text-gray-400 mb-3">with {interview.interviewer}</p>
       <Link
         to="/interviews"
-        className="block w-full text-center py-2 border border-gray-200 text-gray-700 text-xs font-semibold rounded-xl hover:bg-gray-50 transition-all"
+        className="block w-full text-center py-2 border border-gray-200 text-gray-600 text-xs font-semibold rounded-md hover:bg-gray-50 transition-all"
       >
-        {isPast ? 'Prepare' : 'View Details'}
+        {buttonLabel}
       </Link>
     </div>
   );
