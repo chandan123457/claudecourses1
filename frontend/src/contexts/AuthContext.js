@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import {
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
@@ -51,13 +51,18 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const recaptchaVerifierRef = useRef(null);
 
+  const refreshDbUser = useCallback(async () => {
+    const response = await api.get('/users/profile/me');
+    setDbUser(response.data.data);
+    return response.data.data;
+  }, []);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       if (user) {
         try {
-          const response = await api.get('/users/profile');
-          setDbUser(response.data.data);
+          await refreshDbUser();
         } catch (error) {
           console.error('❌ Error fetching user profile:', error);
         }
@@ -71,7 +76,7 @@ export const AuthProvider = ({ children }) => {
       unsubscribe();
       clearRecaptcha();
     };
-  }, []);
+  }, [refreshDbUser]);
 
   const clearRecaptcha = () => {
     // 1. Clear Firebase's RecaptchaVerifier wrapper
@@ -155,6 +160,7 @@ export const AuthProvider = ({ children }) => {
     signInWithPhoneNumber,
     signIn,
     signOut,
+    refreshDbUser,
     setupRecaptcha,
     clearRecaptcha,
   };

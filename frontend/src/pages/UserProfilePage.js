@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useDashboard } from '../contexts/DashboardContext';
+import { useAuth } from '../contexts/AuthContext';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 
 const UserProfilePage = () => {
   const { profileData, profileLoading, fetchProfile, updateProfile } = useDashboard();
+  const { refreshDbUser } = useAuth();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({});
@@ -32,6 +34,7 @@ const UserProfilePage = () => {
     setSaving(true);
     try {
       await updateProfile(formData);
+      await refreshDbUser();
       setEditing(false);
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
@@ -57,15 +60,6 @@ const UserProfilePage = () => {
     eligibility,
     readiness,
   } = profileData || {};
-
-  const initials = user?.name
-    ? user.name
-        .split(' ')
-        .map((n) => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2)
-    : 'U';
 
   const overallScore = readiness?.overallScore || 0;
   const technicalScore = readiness?.technicalScore || 0;
@@ -374,13 +368,7 @@ const UserProfilePage = () => {
                             : ''}
                         </p>
                       </div>
-                      <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 text-xs font-semibold rounded-lg hover:bg-gray-50 transition-all flex-shrink-0">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        Certificate
-                      </button>
+                      <CertificateAction certificateUrl={cert.certificateUrl} label="Certificate" />
                     </div>
                   ))}
                 </div>
@@ -440,5 +428,41 @@ const SocialCard = ({ icon, name, connected, url }) => (
     </p>
   </a>
 );
+
+const CertificateAction = ({ certificateUrl, label }) => {
+  const href = getDownloadableUrl(certificateUrl);
+
+  if (!href) {
+    return (
+      <span className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-400 text-xs font-semibold rounded-lg flex-shrink-0 cursor-not-allowed">
+        Missing URL
+      </span>
+    );
+  }
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      download
+      className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 text-xs font-semibold rounded-lg hover:bg-gray-50 transition-all flex-shrink-0"
+    >
+      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+      </svg>
+      {label}
+    </a>
+  );
+};
+
+const getDownloadableUrl = (url) => {
+  if (!url) return '';
+  const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+  const driveOpenMatch = url.match(/[?&]id=([^&]+)/);
+  const fileId = driveFileMatch?.[1] || driveOpenMatch?.[1];
+  return fileId ? `https://drive.google.com/uc?export=download&id=${fileId}` : url;
+};
 
 export default UserProfilePage;

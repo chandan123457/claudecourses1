@@ -7,6 +7,7 @@ export const dashboardService = {
       certifications,
       eligibility,
       upcomingInterviews,
+      upcomingBookings,
       interviewStats,
     ] = await Promise.all([
       // Enrolled programs with progress
@@ -53,6 +54,17 @@ export const dashboardService = {
         take: 3,
       }),
 
+      // Confirmed on-demand bookings should also surface on the dashboard.
+      prisma.interviewBooking.findMany({
+        where: {
+          userId,
+          status: 'confirmed',
+          preferredDate: { gte: new Date() },
+        },
+        orderBy: { preferredDate: 'asc' },
+        take: 3,
+      }),
+
       // Interview summary stats
       prisma.mockInterview.aggregate({
         where: { userId, status: 'completed' },
@@ -65,7 +77,24 @@ export const dashboardService = {
       enrolledPrograms: programEnrollments,
       certifications,
       eligibility,
-      upcomingInterviews,
+      upcomingInterviews: [
+        ...upcomingInterviews.map((interview) => ({
+          ...interview,
+          id: `session-${interview.id}`,
+          source: 'session',
+        })),
+        ...upcomingBookings.map((booking) => ({
+          id: `booking-${booking.id}`,
+          source: 'booking',
+          topic: `${booking.domain} Interview`,
+          interviewer: 'GradToPro Mentor',
+          sessionDate: booking.preferredDate,
+          status: booking.status,
+          sessionLink: booking.sessionLink,
+        })),
+      ]
+        .sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime())
+        .slice(0, 3),
       interviewStats: {
         totalCompleted: interviewStats._count,
         avgScore: interviewStats._avg.score ?? 0,

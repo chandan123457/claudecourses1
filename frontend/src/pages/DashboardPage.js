@@ -301,12 +301,44 @@ const CertificationRow = ({ cert, last }) => (
               ? new Date(cert.issuedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
               : ''}
           </p>
-          <button className="text-xs text-yellow-600 font-semibold hover:text-yellow-700 mt-0.5">Resume</button>
+          <CertificateLink certificateUrl={cert.certificateUrl} />
         </>
       )}
     </div>
   </div>
 );
+
+const CertificateLink = ({ certificateUrl }) => {
+  const href = getDownloadableUrl(certificateUrl);
+
+  if (!href) {
+    return (
+      <span className="text-xs text-gray-400 font-semibold mt-0.5 inline-block">
+        Missing URL
+      </span>
+    );
+  }
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      download
+      className="text-xs text-yellow-600 font-semibold hover:text-yellow-700 mt-0.5 inline-block"
+    >
+      Download
+    </a>
+  );
+};
+
+const getDownloadableUrl = (url) => {
+  if (!url) return '';
+  const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+  const driveOpenMatch = url.match(/[?&]id=([^&]+)/);
+  const fileId = driveFileMatch?.[1] || driveOpenMatch?.[1];
+  return fileId ? `https://drive.google.com/uc?export=download&id=${fileId}` : url;
+};
 
 const UpcomingInterviewCard = ({ interview }) => {
   const date = new Date(interview.sessionDate);
