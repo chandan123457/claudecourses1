@@ -69,6 +69,7 @@ router.post('/certifications', isAdmin, adminController.assignCertification);
 router.get('/certification-hub/overview', isAdmin, certificationController.getAdminOverview);
 router.post('/certification-hub/projects', isAdmin, certificationController.createAdminProject);
 router.put('/certification-hub/projects/:projectId', isAdmin, certificationController.updateAdminProject);
+router.delete('/certification-hub/projects/:projectId', isAdmin, certificationController.deleteAdminProject);
 router.patch('/certification-hub/submissions/:submissionId/review', isAdmin, certificationController.reviewSubmission);
 router.post('/certification-hub/submissions/:submissionId/certificate', isAdmin, certificationController.issueCertificate);
 

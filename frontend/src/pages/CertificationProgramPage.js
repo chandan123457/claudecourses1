@@ -21,8 +21,8 @@ const CertificationProgramPage = () => {
   const [project, setProject] = useState(null);
   const [selectedPlanId, setSelectedPlanId] = useState(null);
   const [selectedTab, setSelectedTab] = useState('roadmap');
-  const [couponCode, setCouponCode] = useState('STUDENT25');
-  const [appliedCoupon, setAppliedCoupon] = useState('STUDENT25');
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState('');
   const [pricing, setPricing] = useState({ basePrice: 0, discount: 0, platformFee: 0, finalPayable: 0 });
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -329,6 +329,11 @@ const CertificationProgramPage = () => {
                     Apply
                   </button>
                 </div>
+                {project.activeCoupons?.length > 0 && (
+                  <p className="mt-4 text-[14px] text-[#94A3B8]">
+                    Available codes: {project.activeCoupons.map((coupon) => coupon.code).join(', ')}
+                  </p>
+                )}
                 {appliedCoupon && (
                   <p className="mt-5 text-[15px] text-[#22C55E]">✓ Code '{appliedCoupon}' active</p>
                 )}
@@ -384,4 +389,3 @@ const SummaryRow = ({ label, value, valueStrong = false }) => (
 );
 
 export default CertificationProgramPage;
-

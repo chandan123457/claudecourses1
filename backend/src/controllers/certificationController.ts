@@ -125,6 +125,12 @@ export const certificationController = {
     res.status(200).json({ success: true, data });
   }),
 
+  deleteAdminProject: asyncHandler(async (req: Request, res: Response) => {
+    const projectId = toNumber(req.params.projectId, 'projectId');
+    const data = await certificationService.deleteAdminProject(projectId);
+    res.status(200).json({ success: true, data });
+  }),
+
   reviewSubmission: asyncHandler(async (req: Request, res: Response) => {
     const submissionId = toNumber(req.params.submissionId, 'submissionId');
     const data = await certificationService.reviewSubmission(submissionId, {
@@ -145,4 +151,3 @@ export const certificationController = {
     res.status(201).json({ success: true, data });
   }),
 };
-

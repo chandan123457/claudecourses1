@@ -43,6 +43,12 @@
 /* Smooth Scrolling */
 html {
   scroll-behavior: smooth;
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+}
+
+body {
+  overflow-x: hidden;
 }
 
 /* Custom scrollbar */

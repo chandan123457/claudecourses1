@@ -15,6 +15,7 @@ const DashboardLayout = ({ children }) => {
   const { dbUser, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [logoFailed, setLogoFailed] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -31,8 +32,17 @@ const DashboardLayout = ({ children }) => {
         <div className="mx-auto max-w-[1320px] px-5 lg:px-8">
           <div className="grid h-[68px] grid-cols-[auto_1fr_auto] items-center gap-4">
             <Link to="/" className="flex items-center gap-3 min-w-0">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-[#E7E5E4] bg-white shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
-                <img src="/logo.png" alt="GradToPro" className="h-5 w-5 object-contain" />
+              <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-[#E7E5E4] bg-white shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
+                {logoFailed ? (
+                  <span className="text-sm font-black text-[#E4B61A]">G</span>
+                ) : (
+                  <img
+                    src="/logo.png"
+                    alt="GradToPro"
+                    onError={() => setLogoFailed(true)}
+                    className="h-10 w-10 scale-[2.45] object-contain"
+                  />
+                )}
               </div>
               <span className="hidden sm:block text-[1.05rem] font-black tracking-tight text-[#111827]">
                 Grad<span className="text-[#E4B61A]">ToPro</span>
@@ -137,8 +147,17 @@ const DashboardLayout = ({ children }) => {
           <div className="absolute left-0 top-0 h-full w-72 bg-white shadow-xl flex flex-col">
             <div className="px-6 py-5 border-b border-[#E7E5E4] flex items-center justify-between">
               <Link to="/" className="flex items-center gap-2.5" onClick={() => setMobileOpen(false)}>
-                <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[#E7E5E4] bg-white shadow-sm">
-                  <img src="/logo.png" alt="GradToPro" className="h-5 w-5 object-contain" />
+                <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border border-[#E7E5E4] bg-white shadow-sm">
+                  {logoFailed ? (
+                    <span className="text-sm font-black text-[#E4B61A]">G</span>
+                  ) : (
+                    <img
+                      src="/logo.png"
+                      alt="GradToPro"
+                      onError={() => setLogoFailed(true)}
+                      className="h-9 w-9 scale-[2.45] object-contain"
+                    />
+                  )}
                 </div>
                 <span className="text-lg font-black tracking-tight text-[#111827]">
                   Grad<span className="text-[#E4B61A]">ToPro</span>

@@ -13,6 +13,120 @@ const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
+const toStringArray = (value: any) => {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item || '').trim())
+      .filter(Boolean);
+  }
+
+  return String(value || '')
+    .split(/\r?\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+};
+
+const buildDefaultPlans = (basePrice: number, recommendedPrice: number) => [
+  {
+    name: '1-Month Track',
+    subtitle: 'Intensive Fast-track',
+    durationLabel: '1 Mo',
+    price: basePrice,
+    isRecommended: false,
+    sortOrder: 1,
+    features: ['Structured Roadmap', 'Automated Audit', 'Live Mock Interviews', 'Core Milestones'],
+  },
+  {
+    name: '3-Month Track',
+    subtitle: 'Comprehensive Mastery',
+    durationLabel: '3 Mo',
+    price: recommendedPrice,
+    isRecommended: true,
+    sortOrder: 2,
+    features: ['Personalized Roadmap', 'Weekly Expert Audit', '3 Live Mock Interviews', 'Advanced Milestones'],
+  },
+];
+
+const buildDefaultSections = () => [
+  { sectionKey: 'roadmap', title: 'Milestone 1', description: 'Foundational work for the certification roadmap.', stepNumber: 1, sortOrder: 1 },
+  { sectionKey: 'roadmap', title: 'Milestone 2', description: 'Intermediate implementation and audit readiness.', stepNumber: 2, sortOrder: 2 },
+  { sectionKey: 'roadmap', title: 'Milestone 3', description: 'Final deployment and presentation.', stepNumber: 3, sortOrder: 3 },
+  { sectionKey: 'requirements', title: 'Requirements', description: 'Provide design doc, requirements doc, repository, and live demo.', sortOrder: 1 },
+  { sectionKey: 'evaluation', title: 'Evaluation', description: 'Auto audit, mentor review, then live defense unlock.', sortOrder: 1 },
+  { sectionKey: 'perks', title: 'Perks', description: 'Certificate, mentor feedback, and portfolio-ready output.', sortOrder: 1 },
+  { sectionKey: 're-evaluation', title: 'Re-evaluation', description: 'Rejected submissions can be revised and reviewed again.', sortOrder: 1 },
+];
+
+const normalizePlans = (plans: any, fallbackBasePrice: number, fallbackRecommendedPrice: number) => {
+  const source = Array.isArray(plans) && plans.length > 0 ? plans : buildDefaultPlans(fallbackBasePrice, fallbackRecommendedPrice);
+  const normalized = source.map((plan: any, index: number) => ({
+    id: plan.id ? Number(plan.id) : undefined,
+    name: String(plan.name || `Plan ${index + 1}`).trim(),
+    subtitle: String(plan.subtitle || '').trim() || null,
+    durationLabel: String(plan.durationLabel || `${index + 1} Mo`).trim(),
+    price: Number(plan.price || 0),
+    features: toStringArray(plan.featuresText ?? plan.features),
+    isRecommended: Boolean(plan.isRecommended),
+    sortOrder: Number(plan.sortOrder || index + 1),
+  }));
+
+  if (!normalized.some((plan) => plan.isRecommended) && normalized[0]) {
+    normalized[0].isRecommended = true;
+  }
+
+  return normalized;
+};
+
+const normalizeSectionItems = (items: any) => {
+  const source = Array.isArray(items) && items.length > 0 ? items : buildDefaultSections();
+  return source
+    .map((item: any, index: number) => ({
+      id: item.id ? Number(item.id) : undefined,
+      sectionKey: String(item.sectionKey || 'roadmap').trim().toLowerCase(),
+      title: String(item.title || '').trim(),
+      description: String(item.description || '').trim(),
+      stepNumber: item.stepNumber === '' || item.stepNumber === null || item.stepNumber === undefined
+        ? null
+        : Number(item.stepNumber),
+      sortOrder: Number(item.sortOrder || index + 1),
+    }))
+    .filter((item) => item.title && item.description);
+};
+
+const normalizeCoupons = (items: any) => {
+  if (!Array.isArray(items)) return [];
+
+  return items
+    .map((coupon: any) => {
+      const code = String(coupon.code || '').trim().toUpperCase();
+      if (!code) return null;
+
+      const parsedExpiry = coupon.expiresAt ? new Date(coupon.expiresAt) : null;
+      const hasValidExpiry = parsedExpiry && !Number.isNaN(parsedExpiry.getTime());
+
+      return {
+        id: coupon.id ? Number(coupon.id) : undefined,
+        code,
+        discountType: coupon.discountType === 'percent' ? 'percent' : 'fixed',
+        amount: Number(coupon.amount || 0),
+        minAmount: Number(coupon.minAmount || 0),
+        isActive: coupon.isActive !== false,
+        expiresAt: hasValidExpiry ? parsedExpiry : null,
+        usageLimit: coupon.usageLimit ? Number(coupon.usageLimit) : null,
+      };
+    })
+    .filter(Boolean) as Array<{
+    id?: number;
+    code: string;
+    discountType: 'fixed' | 'percent';
+    amount: number;
+    minAmount: number;
+    isActive: boolean;
+    expiresAt: Date | null;
+    usageLimit: number | null;
+  }>;
+};
+
 const sampleProjects = [
   {
     title: 'Automated Inventory Opt.',
@@ -190,15 +304,6 @@ const sampleProjects = [
   },
 ];
 
-const defaultCoupons = [
-  {
-    code: 'STUDENT25',
-    discountType: 'fixed',
-    amount: 255,
-    minAmount: 1000,
-  },
-];
-
 const mapProjectCard = (project: any, userEnrollment?: any) => {
   const lowestPlan = project.plans.reduce((best: any, current: any) => {
     if (!best || current.price < best.price) return current;
@@ -235,22 +340,6 @@ export const certificationService = {
   async ensureSeedData() {
     const count = await prisma.certificationProject.count();
     if (count >= sampleProjects.length) return;
-
-    const studentCoupon = await prisma.certificationCoupon.findUnique({
-      where: { code: 'STUDENT25' },
-    });
-
-    if (!studentCoupon) {
-      await prisma.certificationCoupon.create({
-        data: {
-          code: 'STUDENT25',
-          discountType: 'fixed',
-          amount: 255,
-          minAmount: 1000,
-          isActive: true,
-        },
-      });
-    }
 
     for (const project of sampleProjects) {
       const existingProject = await prisma.certificationProject.findUnique({
@@ -411,7 +500,13 @@ export const certificationService = {
       plans: project.plans,
       sections: buildRoadmapSections(project.sectionItems),
       mentors: project.mentors,
-      activeCoupons: project.coupons.map((coupon) => coupon.code),
+      activeCoupons: project.coupons.map((coupon) => ({
+        id: coupon.id,
+        code: coupon.code,
+        discountType: coupon.discountType,
+        amount: coupon.amount,
+        minAmount: coupon.minAmount,
+      })),
       enrollment,
     };
   },
@@ -854,6 +949,9 @@ export const certificationService = {
       prisma.certificationProject.findMany({
         include: {
           plans: { orderBy: { sortOrder: 'asc' } },
+          sectionItems: { orderBy: [{ sectionKey: 'asc' }, { sortOrder: 'asc' }] },
+          coupons: { orderBy: { createdAt: 'desc' } },
+          mentors: { include: { slots: { orderBy: { startTime: 'asc' } } } },
           _count: { select: { enrollments: true, submissions: true } },
         },
         orderBy: { createdAt: 'desc' },
@@ -917,45 +1015,12 @@ export const certificationService = {
     const existing = await prisma.certificationProject.findUnique({ where: { slug: slugBase } });
     const slug = existing ? `${slugBase}-${Date.now()}` : slugBase;
 
-    const tags = Array.isArray(payload.tags)
-      ? payload.tags
-      : String(payload.tags || '')
-          .split(',')
-          .map((item) => item.trim())
-          .filter(Boolean);
-
-    const plans = Array.isArray(payload.plans) && payload.plans.length > 0
-      ? payload.plans
-      : [
-          {
-            name: '1-Month Track',
-            subtitle: 'Intensive Fast-track',
-            durationLabel: '1 Mo',
-            price: Number(payload.basePrice || 1500),
-            isRecommended: false,
-            sortOrder: 1,
-            features: ['Structured Roadmap', 'Automated Audit', 'Live Mock Interviews', 'Core Milestones'],
-          },
-          {
-            name: '3-Month Track',
-            subtitle: 'Comprehensive Mastery',
-            durationLabel: '3 Mo',
-            price: Number(payload.recommendedPrice || 2500),
-            isRecommended: true,
-            sortOrder: 2,
-            features: ['Personalized Roadmap', 'Weekly Expert Audit', '3 Live Mock Interviews', 'Advanced Milestones'],
-          },
-        ];
-
-    const sections = Array.isArray(payload.sectionItems) && payload.sectionItems.length > 0
-      ? payload.sectionItems
-      : [
-          { sectionKey: 'roadmap', title: 'Milestone 1', description: 'Foundational work for the certification roadmap.', stepNumber: 1, sortOrder: 1 },
-          { sectionKey: 'roadmap', title: 'Milestone 2', description: 'Intermediate implementation and audit readiness.', stepNumber: 2, sortOrder: 2 },
-          { sectionKey: 'roadmap', title: 'Milestone 3', description: 'Final deployment and presentation.', stepNumber: 3, sortOrder: 3 },
-          { sectionKey: 'requirements', title: 'Requirements', description: 'Provide design doc, requirements doc, repository, and live demo.', sortOrder: 1 },
-          { sectionKey: 'evaluation', title: 'Evaluation', description: 'Auto audit, mentor review, then live defense unlock.', sortOrder: 1 },
-        ];
+    const basePrice = Number(payload.basePrice || 1500);
+    const recommendedPrice = Number(payload.recommendedPrice || 2500);
+    const tags = toStringArray(payload.tags);
+    const plans = normalizePlans(payload.plans, basePrice, recommendedPrice);
+    const sections = normalizeSectionItems(payload.sectionItems);
+    const coupons = normalizeCoupons(payload.coupons);
 
     const mentorName = payload.mentorName?.trim() || 'Prof. David Miller';
     const mentorTitle = payload.mentorTitle?.trim() || 'Project Lead';
@@ -973,13 +1038,14 @@ export const certificationService = {
         bannerLabel: payload.bannerLabel || `${String(payload.domain || 'General').toUpperCase()} DOMAIN`,
         tags,
         eligibility: payload.eligibility || 'Certification Eligible',
-        basePrice: Number(payload.basePrice || 1500),
+        basePrice,
         platformFee: Number(payload.platformFee || 55),
         popularScore: Number(payload.popularScore || 50),
         certificateEligible: payload.eligibility !== 'Practice Only',
         isActive: payload.isActive !== false,
         plans: { create: plans as any },
         sectionItems: { create: sections as any },
+        coupons: coupons.length ? { create: coupons.map(({ id, ...coupon }) => coupon) as any } : undefined,
         mentors: {
           create: [
             {
@@ -1004,14 +1070,12 @@ export const certificationService = {
   },
 
   async updateAdminProject(projectId: number, payload: any) {
-    const tags = Array.isArray(payload.tags)
-      ? payload.tags
-      : payload.tags !== undefined
-        ? String(payload.tags)
-            .split(',')
-            .map((item) => item.trim())
-            .filter(Boolean)
-        : undefined;
+    const tags = payload.tags !== undefined ? toStringArray(payload.tags) : undefined;
+    const plans = payload.plans !== undefined
+      ? normalizePlans(payload.plans, Number(payload.basePrice || 1500), Number(payload.recommendedPrice || payload.basePrice || 2500))
+      : null;
+    const sections = payload.sectionItems !== undefined ? normalizeSectionItems(payload.sectionItems) : null;
+    const coupons = payload.coupons !== undefined ? normalizeCoupons(payload.coupons) : null;
 
     const data: any = {
       title: payload.title,
@@ -1032,14 +1096,166 @@ export const certificationService = {
 
     if (tags) data.tags = tags;
 
-    return prisma.certificationProject.update({
+    return prisma.$transaction(async (tx) => {
+      await tx.certificationProject.update({
+        where: { id: projectId },
+        data,
+      });
+
+      if (plans) {
+        const existingPlans = await tx.certificationPlan.findMany({
+          where: { projectId },
+          orderBy: { sortOrder: 'asc' },
+        });
+
+        for (let index = 0; index < plans.length; index += 1) {
+          const plan = plans[index];
+          const existing = plan.id
+            ? existingPlans.find((item) => item.id === plan.id)
+            : existingPlans[index];
+
+          const payloadData = {
+            name: plan.name,
+            subtitle: plan.subtitle,
+            durationLabel: plan.durationLabel,
+            price: plan.price,
+            features: plan.features,
+            isRecommended: plan.isRecommended,
+            sortOrder: plan.sortOrder,
+          };
+
+          if (existing) {
+            await tx.certificationPlan.update({
+              where: { id: existing.id },
+              data: payloadData,
+            });
+          } else {
+            await tx.certificationPlan.create({
+              data: {
+                projectId,
+                ...payloadData,
+              },
+            });
+          }
+        }
+      }
+
+      if (sections) {
+        await tx.certificationSectionItem.deleteMany({ where: { projectId } });
+        if (sections.length) {
+          await tx.certificationSectionItem.createMany({
+            data: sections.map(({ id, ...item }) => ({ projectId, ...item })),
+          });
+        }
+      }
+
+      if (coupons) {
+        const existingCoupons = await tx.certificationCoupon.findMany({ where: { projectId } });
+        const incomingIds = new Set(coupons.map((item) => item.id).filter(Boolean));
+
+        for (const coupon of coupons) {
+          const payloadData = {
+            projectId,
+            code: coupon.code,
+            discountType: coupon.discountType,
+            amount: coupon.amount,
+            minAmount: coupon.minAmount,
+            isActive: coupon.isActive,
+            expiresAt: coupon.expiresAt,
+            usageLimit: coupon.usageLimit,
+          };
+
+          if (coupon.id && existingCoupons.some((item) => item.id === coupon.id)) {
+            await tx.certificationCoupon.update({
+              where: { id: coupon.id },
+              data: payloadData,
+            });
+          } else {
+            await tx.certificationCoupon.create({ data: payloadData });
+          }
+        }
+
+        for (const coupon of existingCoupons) {
+          if (!incomingIds.has(coupon.id)) {
+            await tx.certificationCoupon.update({
+              where: { id: coupon.id },
+              data: { isActive: false },
+            });
+          }
+        }
+      }
+
+      if (payload.mentorName !== undefined || payload.mentorTitle !== undefined || payload.mentorBio !== undefined) {
+        const existingMentor = await tx.certificationMentor.findFirst({
+          where: { projectId },
+          orderBy: { createdAt: 'asc' },
+        });
+
+        const mentorData = {
+          name: payload.mentorName?.trim() || 'Prof. David Miller',
+          title: payload.mentorTitle?.trim() || 'Project Lead',
+          bio: payload.mentorBio || null,
+        };
+
+        if (existingMentor) {
+          await tx.certificationMentor.update({
+            where: { id: existingMentor.id },
+            data: mentorData,
+          });
+        } else {
+          await tx.certificationMentor.create({
+            data: {
+              projectId,
+              ...mentorData,
+            },
+          });
+        }
+      }
+
+      return tx.certificationProject.findUnique({
+        where: { id: projectId },
+        include: {
+          plans: { orderBy: { sortOrder: 'asc' } },
+          sectionItems: { orderBy: [{ sectionKey: 'asc' }, { sortOrder: 'asc' }] },
+          coupons: { orderBy: { createdAt: 'desc' } },
+          mentors: { include: { slots: { orderBy: { startTime: 'asc' } } } },
+        },
+      });
+    });
+  },
+
+  async deleteAdminProject(projectId: number) {
+    const dependencyCounts = await prisma.certificationProject.findUnique({
       where: { id: projectId },
-      data,
-      include: {
-        plans: { orderBy: { sortOrder: 'asc' } },
-        mentors: { include: { slots: true } },
+      select: {
+        _count: {
+          select: {
+            enrollments: true,
+            submissions: true,
+            orders: true,
+            certificates: true,
+          },
+        },
       },
     });
+
+    if (!dependencyCounts) throw new Error('Project not found');
+
+    const hasDependencies =
+      dependencyCounts._count.enrollments > 0 ||
+      dependencyCounts._count.submissions > 0 ||
+      dependencyCounts._count.orders > 0 ||
+      dependencyCounts._count.certificates > 0;
+
+    if (hasDependencies) {
+      return prisma.certificationProject.update({
+        where: { id: projectId },
+        data: { isActive: false },
+      });
+    }
+
+    await prisma.certificationProject.delete({ where: { id: projectId } });
+    return { deleted: true };
   },
 
   async reviewSubmission(submissionId: number, payload: { status: string; marks?: number; reviewNotes?: string; mentorFeedback?: string }) {
