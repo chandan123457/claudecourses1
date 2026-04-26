@@ -26,6 +26,14 @@ export const profileService = {
         }),
       ]);
 
+    const technicalScore = eligibility?.technicalScore ?? 0;
+    const softSkillScore = eligibility?.softSkillScore ?? 0;
+    const avgProgress = Math.round(programStats._avg.progress ?? 0);
+    const derivedOverallScore = Math.round(
+      technicalScore * 0.45 + softSkillScore * 0.35 + avgProgress * 0.2
+    );
+    const overallScore = eligibility?.overallScore ?? derivedOverallScore;
+
     return {
       user,
       profile,
@@ -34,10 +42,11 @@ export const profileService = {
       eligibility,
       readiness: {
         totalEnrolled: programStats._count,
-        avgProgress: Math.round(programStats._avg.progress ?? 0),
-        technicalScore: eligibility?.technicalScore ?? 0,
-        softSkillScore: eligibility?.softSkillScore ?? 0,
-        overallScore: eligibility?.overallScore ?? 0,
+        avgProgress,
+        technicalScore,
+        softSkillScore,
+        overallScore,
+        derivedOverallScore,
       },
     };
   },
@@ -131,7 +140,15 @@ export const profileService = {
               mockInterviews: true,
             },
           },
-          portalEligibility: { select: { status: true, overallScore: true } },
+          portalEligibility: {
+            select: {
+              status: true,
+              technicalScore: true,
+              softSkillScore: true,
+              overallScore: true,
+              eligibleTiers: true,
+            },
+          },
         },
       }),
       prisma.user.count({ where }),

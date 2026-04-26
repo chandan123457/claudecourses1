@@ -82,6 +82,7 @@ export const dashboardService = {
           ...interview,
           id: `session-${interview.id}`,
           source: 'session',
+          interviewType: interview.type || 'mock',
         })),
         ...upcomingBookings.map((booking) => ({
           id: `booking-${booking.id}`,
@@ -91,10 +92,10 @@ export const dashboardService = {
           sessionDate: booking.preferredDate,
           status: booking.status,
           sessionLink: booking.sessionLink,
+          interviewType: 'on_demand',
         })),
       ]
-        .sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime())
-        .slice(0, 3),
+        .sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime()),
       interviewStats: {
         totalCompleted: interviewStats._count,
         avgScore: interviewStats._avg.score ?? 0,

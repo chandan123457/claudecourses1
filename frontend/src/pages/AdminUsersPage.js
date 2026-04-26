@@ -136,6 +136,7 @@ const AdminUsersPage = () => {
                   <thead>
                     <tr className="border-b border-white/5 text-white/40 text-xs uppercase tracking-widest">
                       <th className="px-5 py-3 text-left">User</th>
+                      <th className="px-5 py-3 text-left hidden md:table-cell">User ID</th>
                       <th className="px-5 py-3 text-left hidden md:table-cell">Programs</th>
                       <th className="px-5 py-3 text-left hidden lg:table-cell">Certifications</th>
                       <th className="px-5 py-3 text-left hidden lg:table-cell">Interviews</th>
@@ -159,6 +160,7 @@ const AdminUsersPage = () => {
                             </div>
                           </div>
                         </td>
+                        <td className="px-5 py-4 hidden md:table-cell font-mono text-xs text-white/60">{u.id}</td>
                         <td className="px-5 py-4 hidden md:table-cell text-white/60">{u._count?.programEnrollments || 0}</td>
                         <td className="px-5 py-4 hidden lg:table-cell text-white/60">{u._count?.certifications || 0}</td>
                         <td className="px-5 py-4 hidden lg:table-cell text-white/60">{u._count?.mockInterviews || 0}</td>
@@ -169,7 +171,7 @@ const AdminUsersPage = () => {
                         </td>
                         <td className="px-5 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
-                            <button onClick={() => { setEligModal(u); setEligForm({ status: u.portalEligibility?.status || 'qualified', technicalScore: u.portalEligibility?.technicalScore || 80, softSkillScore: u.portalEligibility?.softSkillScore || 70, overallScore: u.portalEligibility?.overallScore || 75, eligibleTiers: 'Tier 1' }); }}
+                            <button onClick={() => { setEligModal(u); setEligForm({ status: u.portalEligibility?.status || 'qualified', technicalScore: u.portalEligibility?.technicalScore || 80, softSkillScore: u.portalEligibility?.softSkillScore || 70, overallScore: u.portalEligibility?.overallScore || 75, eligibleTiers: (u.portalEligibility?.eligibleTiers || ['Tier 1']).join(', ') }); }}
                               className="px-3 py-1.5 bg-green-500/10 text-green-400 rounded-lg text-xs font-medium hover:bg-green-500/20">
                               Set Eligibility
                             </button>

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useDashboard } from '../contexts/DashboardContext';
@@ -9,6 +9,8 @@ import ErrorMessage from '../components/shared/ErrorMessage';
 const DashboardPage = () => {
   const { dbUser } = useAuth();
   const { dashboardData, dashboardLoading, dashboardError, fetchDashboard } = useDashboard();
+  const [selectedInterview, setSelectedInterview] = useState(null);
+  const [showAllInterviews, setShowAllInterviews] = useState(false);
 
   useEffect(() => {
     fetchDashboard();
@@ -40,6 +42,10 @@ const DashboardPage = () => {
     eligibility,
     upcomingInterviews = [],
   } = dashboardData || {};
+  const visiblePrograms = enrolledPrograms.slice(0, 2);
+  const visibleUpcomingInterviews = upcomingInterviews.slice(0, 2);
+  const hasMoreUpcomingInterviews = upcomingInterviews.length > 2;
+  const firstRowCardHeight = visiblePrograms.length > 1 ? 'min-h-[472px]' : 'min-h-[224px]';
 
   return (
     <DashboardLayout>
@@ -55,9 +61,9 @@ const DashboardPage = () => {
         </div>
 
         {/* ── Row 1: Programs (2/3) + Eligibility (1/3) ──── */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 mb-5">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 mb-5 items-start">
           {/* Enrolled Skill Programs */}
-          <div className="xl:col-span-2">
+          <div className="xl:col-span-2 flex flex-col">
             <SectionHeader title="Enrolled Skill Programs" linkTo="/programs" />
             {enrolledPrograms.length === 0 ? (
               <EmptyState
@@ -65,8 +71,8 @@ const DashboardPage = () => {
                 action={{ label: 'Browse Programs', to: '/programs' }}
               />
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {enrolledPrograms.slice(0, 2).map((enrollment) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 auto-rows-fr">
+                {visiblePrograms.map((enrollment) => (
                   <ProgramCard key={enrollment.id} enrollment={enrollment} />
                 ))}
               </div>
@@ -74,26 +80,26 @@ const DashboardPage = () => {
           </div>
 
           {/* Portal Eligibility */}
-          <div>
+          <div className="flex flex-col">
             <div className="mb-4">
               <h2 className="text-sm font-bold text-gray-900">Portal Eligibility</h2>
               <p className="text-xs text-gray-400 mt-0.5">Status for placement drives</p>
             </div>
-            <EligibilityCard eligibility={eligibility} />
+            <EligibilityCard eligibility={eligibility} className={firstRowCardHeight} />
           </div>
         </div>
 
         {/* ── Row 2: Certifications (1/2) + Interviews (1/2) ── */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
           {/* Enrolled Certifications */}
-          <div>
-            <SectionHeader title="Enrolled Certifications" linkTo="/profile" />
+          <div className="flex flex-col">
+            <SectionHeader title="Enrolled Certifications" />
             {certifications.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center text-sm text-gray-400">
+              <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center text-sm text-gray-400 min-h-[220px] flex items-center justify-center">
                 No certifications yet. Complete programs to earn certificates.
               </div>
             ) : (
-              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden min-h-[220px]">
                 {certifications.slice(0, 3).map((cert, i) => (
                   <CertificationRow
                     key={cert.id}
@@ -106,10 +112,14 @@ const DashboardPage = () => {
           </div>
 
           {/* Upcoming Interviews */}
-          <div>
-            <SectionHeader title="Upcoming Interviews" linkTo="/interviews" />
+          <div className="flex flex-col">
+            <SectionHeader
+              title="Upcoming Interviews"
+              onActionClick={() => setShowAllInterviews(true)}
+              showAction={upcomingInterviews.length > 0}
+            />
             {upcomingInterviews.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center">
+              <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center min-h-[220px] flex flex-col items-center justify-center">
                 <p className="text-sm text-gray-400 mb-3">No upcoming interviews</p>
                 <Link
                   to="/interviews"
@@ -119,31 +129,67 @@ const DashboardPage = () => {
                 </Link>
               </div>
             ) : (
-              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                {upcomingInterviews.slice(0, 2).map((interview, index, visibleInterviews) => (
+              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden min-h-[220px]">
+                {visibleUpcomingInterviews.map((interview, index) => (
                   <UpcomingInterviewCard
                     key={interview.id}
                     interview={interview}
-                    last={index === visibleInterviews.length - 1}
+                    last={index === visibleUpcomingInterviews.length - 1 && !hasMoreUpcomingInterviews}
+                    onOpen={() => setSelectedInterview(interview)}
                   />
                 ))}
+                {hasMoreUpcomingInterviews && (
+                  <button
+                    onClick={() => setShowAllInterviews(true)}
+                    className="w-full border-t border-gray-100 px-5 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50"
+                  >
+                    View all upcoming interviews
+                  </button>
+                )}
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {selectedInterview && (
+        <InterviewModal
+          title={selectedInterview.source === 'session' && selectedInterview.interviewType === 'mock' ? 'Prepare for Interview' : 'Interview Details'}
+          interview={selectedInterview}
+          onClose={() => setSelectedInterview(null)}
+        />
+      )}
+
+      {showAllInterviews && (
+        <AllInterviewsModal
+          interviews={upcomingInterviews}
+          onClose={() => setShowAllInterviews(false)}
+          onSelect={(interview) => {
+            setShowAllInterviews(false);
+            setSelectedInterview(interview);
+          }}
+        />
+      )}
     </DashboardLayout>
   );
 };
 
 // ── Helpers ──────────────────────────────────────────────────
 
-const SectionHeader = ({ title, linkTo }) => (
+const SectionHeader = ({ title, linkTo, showAction = Boolean(linkTo), onActionClick }) => (
   <div className="flex items-center justify-between mb-4">
     <h2 className="text-sm font-bold text-gray-900">{title}</h2>
-    <Link to={linkTo} className="text-sm text-gray-500 hover:text-gray-700 font-medium">
-      View All
-    </Link>
+    {showAction ? (
+      onActionClick ? (
+        <button onClick={onActionClick} className="text-sm text-gray-500 hover:text-gray-700 font-medium">
+          View All
+        </button>
+      ) : (
+        <Link to={linkTo} className="text-sm text-gray-500 hover:text-gray-700 font-medium">
+          View All
+        </Link>
+      )
+    ) : null}
   </div>
 );
 
@@ -174,7 +220,7 @@ const ProgramCard = ({ enrollment }) => {
   const isActive = status === 'active';
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col gap-4 hover:shadow-sm transition-all">
+    <div className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col gap-4 hover:shadow-sm transition-all h-full min-h-[224px]">
       {/* Top row: icon + badge */}
       <div className="flex items-start justify-between">
         <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -229,11 +275,11 @@ const ProgramCard = ({ enrollment }) => {
   );
 };
 
-const EligibilityCard = ({ eligibility }) => {
+const EligibilityCard = ({ eligibility, className = '' }) => {
   const qualified = eligibility?.status === 'qualified';
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col items-center text-center h-full justify-between min-h-[200px]">
+    <div className={`bg-white rounded-2xl border border-gray-100 p-6 flex flex-col items-center text-center h-full justify-between ${className}`}>
       <div />
       <div className="flex flex-col items-center">
         <div
@@ -344,7 +390,24 @@ const getDownloadableUrl = (url) => {
   return fileId ? `https://drive.google.com/uc?export=download&id=${fileId}` : url;
 };
 
-const UpcomingInterviewCard = ({ interview, last }) => {
+const formatInterviewType = (value) =>
+  value === 'on_demand' ? 'On-Demand' : value === 'mock' ? 'Mock' : prettyTitle(value);
+
+const prettyTitle = (value) =>
+  String(value || '')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+
+const formatInterviewDate = (value) =>
+  new Date(value).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+
+const UpcomingInterviewCard = ({ interview, last, onOpen }) => {
   const date = new Date(interview.sessionDate);
   const isToday = new Date().toDateString() === date.toDateString();
   const isTomorrow =
@@ -368,14 +431,79 @@ const UpcomingInterviewCard = ({ interview, last }) => {
       </div>
       <p className="font-semibold text-gray-900 text-sm">{interview.topic}</p>
       <p className="text-xs text-gray-400 mb-3">with {interview.interviewer}</p>
-      <Link
-        to="/interviews"
-        className="block w-full text-center py-2 border border-gray-200 text-gray-600 text-xs font-semibold rounded-md hover:bg-gray-50 transition-all"
+      <button
+        onClick={onOpen}
+        className="block w-full rounded-md border border-gray-200 py-2 text-center text-xs font-semibold text-gray-600 transition-all hover:bg-gray-50"
       >
         {buttonLabel}
-      </Link>
+      </button>
     </div>
   );
 };
+
+const InterviewModal = ({ title, interview, onClose }) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+    <div className="absolute inset-0" onClick={onClose} />
+    <div className="relative w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+      <div className="mb-5 flex items-center justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+          <p className="mt-1 text-sm text-gray-400">Session information from the admin-scheduled interview record.</p>
+        </div>
+        <button onClick={onClose} className="text-sm font-medium text-gray-400 hover:text-gray-700">
+          Close
+        </button>
+      </div>
+
+      <div className="space-y-4">
+        <InfoPanel label="Topics" value={interview.topic} />
+        <InfoPanel label="Session Date & Time" value={formatInterviewDate(interview.sessionDate)} />
+        <InfoPanel label="Type" value={formatInterviewType(interview.interviewType || interview.type)} />
+      </div>
+    </div>
+  </div>
+);
+
+const AllInterviewsModal = ({ interviews, onClose, onSelect }) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+    <div className="absolute inset-0" onClick={onClose} />
+    <div className="relative w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl">
+      <div className="mb-5 flex items-center justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-bold text-gray-900">All Upcoming Interviews</h3>
+          <p className="mt-1 text-sm text-gray-400">Showing every upcoming interview currently available on your dashboard.</p>
+        </div>
+        <button onClick={onClose} className="text-sm font-medium text-gray-400 hover:text-gray-700">
+          Close
+        </button>
+      </div>
+
+      <div className="max-h-[65vh] overflow-y-auto rounded-2xl border border-gray-100">
+        {interviews.map((interview, index) => (
+          <button
+            key={interview.id}
+            onClick={() => onSelect(interview)}
+            className={`flex w-full items-center justify-between gap-4 px-5 py-4 text-left hover:bg-gray-50 ${index < interviews.length - 1 ? 'border-b border-gray-100' : ''}`}
+          >
+            <div>
+              <p className="text-sm font-semibold text-gray-900">{interview.topic}</p>
+              <p className="mt-1 text-xs text-gray-400">
+                {formatInterviewDate(interview.sessionDate)} • {formatInterviewType(interview.interviewType || interview.type)}
+              </p>
+            </div>
+            <span className="text-xs font-semibold text-yellow-600">Open</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
+const InfoPanel = ({ label, value }) => (
+  <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-4">
+    <p className="text-xs font-bold uppercase tracking-[0.14em] text-gray-400">{label}</p>
+    <p className="mt-2 text-sm font-medium text-gray-900">{value || '—'}</p>
+  </div>
+);
 
 export default DashboardPage;

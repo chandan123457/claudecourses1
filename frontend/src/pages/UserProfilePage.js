@@ -64,6 +64,7 @@ const UserProfilePage = () => {
   const overallScore = readiness?.overallScore || 0;
   const technicalScore = readiness?.technicalScore || 0;
   const softSkillScore = readiness?.softSkillScore || 0;
+  const progressScore = readiness?.avgProgress || 0;
   const qualified = eligibility?.status === 'qualified';
 
   return (
@@ -229,7 +230,7 @@ const UserProfilePage = () => {
               {/* Overall Readiness */}
               <div className="bg-white rounded-2xl border border-gray-100 p-6">
                 <h2 className="text-sm font-bold text-gray-900 mb-0.5">Overall Readiness</h2>
-                <p className="text-xs text-gray-400 mb-5">Based on assessments & projects</p>
+                <p className="text-xs text-gray-400 mb-5">Based on technical score, soft skills, and learning progress</p>
                 <div className="flex items-center gap-5">
                   {/* Circular gauge */}
                   <div className="relative w-20 h-20 flex-shrink-0">
@@ -275,7 +276,22 @@ const UserProfilePage = () => {
                         />
                       </div>
                     </div>
+                    <div>
+                      <div className="flex justify-between text-xs text-gray-500 mb-1">
+                        <span>Learning Progress</span>
+                        <span>{Math.round(progressScore)}%</span>
+                      </div>
+                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-1.5 bg-gray-900 rounded-full transition-all"
+                          style={{ width: `${progressScore}%` }}
+                        />
+                      </div>
+                    </div>
                   </div>
+                </div>
+                <div className="mt-5 rounded-xl bg-gray-50 px-4 py-3 text-xs text-gray-500">
+                  If the admin sets an Overall Score directly, that value is shown here. Otherwise, the score is derived from technical skill, soft skill, and learning progress.
                 </div>
               </div>
 
