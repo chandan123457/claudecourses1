@@ -45,7 +45,7 @@ const DashboardPage = () => {
   const visiblePrograms = enrolledPrograms.slice(0, 2);
   const visibleUpcomingInterviews = upcomingInterviews.slice(0, 2);
   const hasMoreUpcomingInterviews = upcomingInterviews.length > 2;
-  const firstRowCardHeight = visiblePrograms.length > 1 ? 'min-h-[472px]' : 'min-h-[224px]';
+  const firstRowCardHeight = 'min-h-[224px]';
 
   return (
     <DashboardLayout>
@@ -116,7 +116,7 @@ const DashboardPage = () => {
             <SectionHeader
               title="Upcoming Interviews"
               onActionClick={() => setShowAllInterviews(true)}
-              showAction={upcomingInterviews.length > 0}
+              showAction={hasMoreUpcomingInterviews}
             />
             {upcomingInterviews.length === 0 ? (
               <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center min-h-[220px] flex flex-col items-center justify-center">
@@ -419,7 +419,9 @@ const UpcomingInterviewCard = ({ interview, last, onOpen }) => {
     : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
   const timeLabel = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-  const buttonLabel = interview.source === 'session' && interview.type === 'mock'
+  const buttonLabel =
+    interview.source === 'session' &&
+    (interview.interviewType || interview.type) === 'mock'
     ? 'Prepare'
     : 'View Details';
 
