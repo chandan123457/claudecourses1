@@ -1081,14 +1081,14 @@ const SidePanel = ({ title, children }) => (
 );
 
 const Modal = ({ title, children, onClose, wide = false }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4">
+  <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/65 p-4">
     <div className="absolute inset-0" onClick={onClose} />
-    <div className={`relative w-full ${wide ? 'max-w-6xl' : 'max-w-3xl'} rounded-3xl border border-white/10 bg-[#0F1A2E] p-6 shadow-2xl`}>
-      <div className="mb-6 flex items-center justify-between gap-4">
+    <div className={`relative flex max-h-[88vh] w-full flex-col overflow-hidden ${wide ? 'max-w-6xl' : 'max-w-3xl'} rounded-3xl border border-white/10 bg-[#0F1A2E] p-6 shadow-2xl`}>
+      <div className="mb-6 flex flex-shrink-0 items-center justify-between gap-4">
         <h3 className="text-xl font-black text-white">{title}</h3>
         <button onClick={onClose} className="text-sm text-white/50 hover:text-white">Close</button>
       </div>
-      <div className={wide ? 'max-h-[78vh] overflow-y-auto pr-1' : ''}>{children}</div>
+      <div className={`overflow-y-auto pr-2 ${wide ? 'max-h-[78vh]' : 'max-h-[72vh]'}`}>{children}</div>
     </div>
   </div>
 );
