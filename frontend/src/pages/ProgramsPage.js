@@ -440,8 +440,8 @@ const ProgramCard = ({ program, onEnroll, saved, onSave }) => {
   const isEnrolled = program.isEnrolled;
 
   return (
-    <article className="flex h-[560px] flex-col overflow-hidden rounded-[10px] border border-[#DCE2EA] bg-white shadow-[0_4px_18px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_26px_rgba(15,23,42,0.12)]">
-      <div className="relative h-[260px] overflow-hidden">
+    <article className="flex min-h-[500px] flex-col overflow-hidden rounded-[10px] border border-[#DCE2EA] bg-white shadow-[0_4px_18px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_26px_rgba(15,23,42,0.12)]">
+      <div className="relative h-[220px] overflow-hidden">
         {program.thumbnail ? (
           <img src={program.thumbnail} alt={program.title} className="h-full w-full object-cover" />
         ) : (
@@ -472,12 +472,12 @@ const ProgramCard = ({ program, onEnroll, saved, onSave }) => {
       </div>
 
       <div className="flex flex-1 flex-col px-3 pb-4 pt-3">
-        <h3 className="min-h-[88px] text-[24px] font-semibold leading-[1.15] tracking-[-0.02em] text-[#111827]">
+        <h3 className="min-h-[64px] text-[24px] font-semibold leading-[1.15] tracking-[-0.02em] text-[#111827]">
           {program.title}
         </h3>
 
         <p
-          className="mt-2 min-h-[72px] text-[14px] leading-7 text-[#6B7280]"
+          className="mt-2 min-h-[52px] text-[14px] leading-7 text-[#6B7280]"
           style={{
             display: '-webkit-box',
             WebkitLineClamp: 3,
