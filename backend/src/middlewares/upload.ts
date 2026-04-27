@@ -94,4 +94,31 @@ const documentUpload = multer({
 
 export const uploadDocument = documentUpload.single('file');
 
+// Assignment submission upload configuration
+const assignmentFileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  const allowed = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/zip',
+    'application/x-zip-compressed',
+    'application/x-7z-compressed',
+    'text/plain',
+  ];
+
+  if (allowed.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only PDF, DOC, DOCX, ZIP, 7Z, and TXT files are allowed.'));
+  }
+};
+
+const assignmentUpload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: assignmentFileFilter,
+  limits: { fileSize: 25 * 1024 * 1024 },
+});
+
+export const uploadAssignmentSubmission = assignmentUpload.single('file');
+
 export default upload;

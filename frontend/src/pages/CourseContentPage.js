@@ -22,6 +22,11 @@ const CourseContentPage = () => {
   const [completing, setCompleting] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedModules, setExpandedModules] = useState({});
+  const [assignmentData, setAssignmentData] = useState(null);
+  const [assignmentGithubLink, setAssignmentGithubLink] = useState('');
+  const [assignmentFile, setAssignmentFile] = useState(null);
+  const [assignmentSubmitting, setAssignmentSubmitting] = useState(false);
+  const [assignmentError, setAssignmentError] = useState('');
 
   // Load course structure
   const loadCourse = useCallback(async () => {
@@ -54,7 +59,12 @@ const CourseContentPage = () => {
     setLessonLoading(true);
     api.get(`/programs/lessons/${lessonId}`)
       .then(res => {
-        setCurrentLesson(res.data.data.lesson);
+        const lessonData = res.data.data;
+        setCurrentLesson(lessonData.lesson);
+        setAssignmentData(lessonData.assignment || null);
+        setAssignmentGithubLink(lessonData.assignment?.submission?.githubLink || '');
+        setAssignmentFile(null);
+        setAssignmentError('');
         // Expand module containing this lesson
         const mod = courseData.program.modules.find(m => m.lessons.some(l => l.id === parseInt(lessonId)));
         if (mod) setExpandedModules(prev => ({ ...prev, [mod.id]: true }));
@@ -104,6 +114,37 @@ const CourseContentPage = () => {
       console.error('Failed to mark lesson:', err);
     } finally {
       setCompleting(false);
+    }
+  };
+
+  const handleAssignmentSubmit = async () => {
+    if (!assignmentData || assignmentSubmitting) return;
+
+    const formData = new FormData();
+    const githubLink = assignmentGithubLink.trim();
+
+    if (assignmentFile) formData.append('file', assignmentFile);
+    if (githubLink) formData.append('githubLink', githubLink);
+
+    setAssignmentSubmitting(true);
+    setAssignmentError('');
+
+    try {
+      const res = await api.post(`/programs/assignments/${assignmentData.id}/submit`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      setAssignmentData((prev) => (
+        prev
+          ? { ...prev, submission: res.data.data }
+          : prev
+      ));
+      setAssignmentGithubLink(res.data.data.githubLink || githubLink);
+      setAssignmentFile(null);
+    } catch (err) {
+      setAssignmentError(err.response?.data?.message || 'Failed to submit assignment.');
+    } finally {
+      setAssignmentSubmitting(false);
     }
   };
 
@@ -158,6 +199,8 @@ const CourseContentPage = () => {
   const availableQualities = getAvailableQualities(currentLesson);
   const isCompleted = currentLesson && completedLessons.includes(currentLesson.id);
   const resources = currentLesson?.resources || [];
+  const currentSubmission = assignmentData?.submission || null;
+  const assignmentLocked = Boolean(currentSubmission) && !assignmentData?.allowResubmission;
 
   return (
     <div className="min-h-screen bg-[#0f0f0f] text-white flex flex-col">
@@ -395,6 +438,151 @@ const CourseContentPage = () => {
             </div>
           )}
 
+          {assignmentData && (
+            <div className="px-5 sm:px-8 py-6 border-b border-gray-800">
+              <div className="max-w-3xl rounded-2xl border border-gray-800 bg-[#141414] overflow-hidden">
+                <div className="px-5 py-4 border-b border-gray-800 flex flex-col sm:flex-row sm:items-start gap-3 sm:justify-between">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-yellow-400/80 mb-2">Assignment Submission</p>
+                    <h3 className="text-base font-bold text-white">{assignmentData.title}</h3>
+                    <p className="text-sm text-gray-400 mt-2 leading-relaxed">{assignmentData.description}</p>
+                  </div>
+                  <div className="flex flex-col items-start sm:items-end gap-2">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      currentSubmission ? 'bg-green-500/10 text-green-400' : 'bg-gray-800 text-gray-300'
+                    }`}>
+                      {currentSubmission ? formatAssignmentStatus(currentSubmission.status) : 'Not Submitted'}
+                    </span>
+                    {assignmentData.dueDate && (
+                      <p className="text-xs text-gray-500">Due {formatDateLabel(assignmentData.dueDate)}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="px-5 py-5 space-y-4">
+                  {(assignmentData.allowFileUpload || assignmentData.allowGithubLink) && (
+                    <div className="flex flex-wrap gap-2">
+                      {assignmentData.allowFileUpload && (
+                        <span className="px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-300 text-xs font-medium">File upload</span>
+                      )}
+                      {assignmentData.allowGithubLink && (
+                        <span className="px-2.5 py-1 rounded-full bg-white/5 text-gray-300 text-xs font-medium">GitHub link</span>
+                      )}
+                      {assignmentData.allowResubmission && (
+                        <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-300 text-xs font-medium">Resubmission enabled</span>
+                      )}
+                    </div>
+                  )}
+
+                  {assignmentData.allowFileUpload && (
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-400 mb-2">Upload file</label>
+                      <label className={`flex items-center justify-between gap-4 rounded-xl border px-4 py-3 cursor-pointer transition-all ${
+                        assignmentLocked ? 'border-gray-800 bg-black/20 cursor-not-allowed opacity-60' : 'border-gray-700 bg-black/20 hover:border-gray-600'
+                      }`}>
+                        <div className="min-w-0">
+                          <p className="text-sm text-white truncate">
+                            {assignmentFile?.name || currentSubmission?.fileName || 'Choose a file to attach'}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">PDF, DOC, DOCX, ZIP, 7Z, or TXT up to 25MB</p>
+                        </div>
+                        <span className="px-3 py-1.5 rounded-lg bg-white/5 text-xs font-semibold text-gray-200">Browse</span>
+                        <input
+                          type="file"
+                          className="hidden"
+                          disabled={assignmentLocked}
+                          onChange={(e) => setAssignmentFile(e.target.files?.[0] || null)}
+                        />
+                      </label>
+                    </div>
+                  )}
+
+                  {assignmentData.allowGithubLink && (
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-400 mb-2">GitHub repository link</label>
+                      <input
+                        type="url"
+                        value={assignmentGithubLink}
+                        disabled={assignmentLocked}
+                        onChange={(e) => setAssignmentGithubLink(e.target.value)}
+                        placeholder="https://github.com/your-org/your-repo"
+                        className="w-full bg-black/20 border border-gray-700 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-yellow-400/60 disabled:opacity-60"
+                      />
+                    </div>
+                  )}
+
+                  {assignmentError && (
+                    <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-300">
+                      {assignmentError}
+                    </div>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="text-xs text-gray-500">
+                      {currentSubmission
+                        ? `Submitted on ${formatDateTimeLabel(currentSubmission.submittedAt)}`
+                        : 'Submit once you have the supporting file or repository ready.'}
+                    </div>
+                    <button
+                      onClick={handleAssignmentSubmit}
+                      disabled={assignmentSubmitting || assignmentLocked || (!assignmentFile && !assignmentGithubLink.trim())}
+                      className="px-5 py-2.5 rounded-xl bg-yellow-400 text-gray-900 text-sm font-bold hover:bg-yellow-500 transition-all disabled:opacity-50 disabled:hover:bg-yellow-400"
+                    >
+                      {assignmentSubmitting ? 'Submitting...' : currentSubmission && assignmentData.allowResubmission ? 'Submit New Attempt' : 'Submit Assignment'}
+                    </button>
+                  </div>
+
+                  {currentSubmission && (
+                    <div className="rounded-xl border border-gray-800 bg-black/20 p-4 space-y-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-semibold text-white">Latest submission</span>
+                        <span className="px-2.5 py-1 rounded-full bg-green-500/10 text-green-400 text-xs font-semibold">
+                          {formatAssignmentStatus(currentSubmission.status)}
+                        </span>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="min-w-0">
+                          <p className="text-xs uppercase tracking-[0.18em] text-gray-500 mb-1">File</p>
+                          {currentSubmission.fileUrl ? (
+                            <a href={currentSubmission.fileUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-300 hover:text-blue-200 truncate inline-block">
+                              {currentSubmission.fileName || 'Open uploaded file'}
+                            </a>
+                          ) : (
+                            <p className="text-sm text-gray-500">No file uploaded</p>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs uppercase tracking-[0.18em] text-gray-500 mb-1">Repository</p>
+                          {currentSubmission.githubLink ? (
+                            <a href={currentSubmission.githubLink} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-300 hover:text-blue-200 truncate inline-block">
+                              {currentSubmission.githubLink}
+                            </a>
+                          ) : (
+                            <p className="text-sm text-gray-500">No GitHub link submitted</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {currentSubmission.comments?.length > 0 && (
+                        <div className="pt-2 border-t border-gray-800">
+                          <p className="text-sm font-semibold text-white mb-3">Admin Feedback</p>
+                          <div className="space-y-3">
+                            {currentSubmission.comments.map((comment) => (
+                              <div key={comment.id} className="rounded-xl bg-[#101010] border border-gray-800 px-4 py-3">
+                                <p className="text-sm text-gray-200 leading-relaxed">{comment.comment}</p>
+                                <p className="text-xs text-gray-500 mt-2">{formatDateTimeLabel(comment.createdAt)}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="h-8" />
         </main>
       </div>
@@ -552,6 +740,33 @@ const ResourceCard = ({ resource }) => {
       </svg>
     </a>
   );
+};
+
+const formatDateLabel = (value) => (
+  new Date(value).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+);
+
+const formatDateTimeLabel = (value) => (
+  new Date(value).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+);
+
+const formatAssignmentStatus = (status) => {
+  if (!status) return 'Submitted';
+
+  return status
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
 };
 
 export default CourseContentPage;

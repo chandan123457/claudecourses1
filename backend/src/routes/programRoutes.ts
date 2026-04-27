@@ -1,6 +1,7 @@
 import express from 'express';
 import { programController } from '../controllers/programController';
 import { authenticate, optionalAuthenticate } from '../middlewares/auth';
+import { uploadAssignmentSubmission } from '../middlewares/upload';
 
 const router = express.Router();
 
@@ -12,6 +13,7 @@ router.post('/payment/claim', authenticate, programController.claimPayment);
 // Lesson routes
 router.get('/lessons/:lessonId', authenticate, programController.getLesson);
 router.post('/lessons/:lessonId/complete', authenticate, programController.markLessonComplete);
+router.post('/assignments/:assignmentId/submit', authenticate, uploadAssignmentSubmission, programController.submitAssignment);
 
 // Public routes (with optional auth for enrollment status)
 router.get('/', optionalAuthenticate, programController.getPrograms);

@@ -100,6 +100,17 @@ export const programController = {
     res.status(200).json({ success: true, data: result });
   }),
 
+  // POST /programs/assignments/:assignmentId/submit
+  submitAssignment: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const assignmentId = parseInt(req.params.assignmentId);
+    const userId = req.user!.id;
+    const data = await programService.submitAssignment(userId, assignmentId, {
+      githubLink: req.body.githubLink,
+      file: req.file,
+    });
+    res.status(201).json({ success: true, message: 'Assignment submitted successfully', data });
+  }),
+
   // POST /programs/payment/create-order
   createPaymentOrder: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const userId = req.user?.id || null;

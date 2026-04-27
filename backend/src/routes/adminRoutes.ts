@@ -47,9 +47,11 @@ router.delete('/programs/:id', isAdmin, adminController.deleteProgram);
 
 // Module management
 router.get('/programs/:programId/modules', isAdmin, adminController.getModules);
+router.get('/programs/:programId/assignment-submissions', isAdmin, adminController.getAssignmentSubmissions);
 router.post('/programs/:programId/modules', isAdmin, adminController.createModule);
 router.put('/modules/:id', isAdmin, adminController.updateModule);
 router.delete('/modules/:id', isAdmin, adminController.deleteModule);
+router.patch('/assignment-submissions/:submissionId/review', isAdmin, adminController.reviewAssignmentSubmission);
 
 // Lesson management
 router.post('/modules/:moduleId/lessons', isAdmin, adminController.createLesson);

@@ -2,6 +2,7 @@ import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import prisma from '../db/prisma';
 import { verifyRazorpaySignature } from '../utils/razorpay';
+import { uploadDocumentToCloudinary } from '../utils/imageUpload';
 
 let razorpay: Razorpay | null = null;
 const getRazorpay = () => {
@@ -12,6 +13,108 @@ const getRazorpay = () => {
     });
   }
   return razorpay;
+};
+
+const assignmentIncludeForStudent = (userId: number) => ({
+  assignment: {
+    include: {
+      submissions: {
+        where: { userId },
+        orderBy: { submittedAt: 'desc' as const },
+        take: 1,
+        include: {
+          comments: { orderBy: { createdAt: 'asc' as const } },
+        },
+      },
+    },
+  },
+});
+
+const mapAssignmentComment = (comment: any) => ({
+  id: comment.id,
+  comment: comment.comment,
+  createdAt: comment.createdAt,
+  updatedAt: comment.updatedAt,
+});
+
+const mapAssignmentSubmission = (submission: any) => {
+  if (!submission) return null;
+
+  return {
+    id: submission.id,
+    fileUrl: submission.fileUrl,
+    fileName: submission.fileName,
+    githubLink: submission.githubLink,
+    status: submission.status,
+    submittedAt: submission.submittedAt,
+    updatedAt: submission.updatedAt,
+    comments: (submission.comments || []).map(mapAssignmentComment),
+  };
+};
+
+const mapAssignmentForStudent = (assignment: any) => {
+  if (!assignment || !assignment.isEnabled) return null;
+
+  return {
+    id: assignment.id,
+    moduleId: assignment.moduleId,
+    title: assignment.title,
+    description: assignment.description,
+    dueDate: assignment.dueDate,
+    allowFileUpload: assignment.allowFileUpload,
+    allowGithubLink: assignment.allowGithubLink,
+    allowResubmission: assignment.allowResubmission,
+    submission: mapAssignmentSubmission(assignment.submissions?.[0] || null),
+  };
+};
+
+const mapAssignmentForAdmin = (assignment: any) => {
+  if (!assignment) return null;
+
+  return {
+    id: assignment.id,
+    moduleId: assignment.moduleId,
+    title: assignment.title,
+    description: assignment.description,
+    dueDate: assignment.dueDate,
+    allowFileUpload: assignment.allowFileUpload,
+    allowGithubLink: assignment.allowGithubLink,
+    allowResubmission: assignment.allowResubmission,
+    isEnabled: assignment.isEnabled,
+  };
+};
+
+const normalizeAssignmentInput = (assignment?: any) => {
+  if (!assignment) return null;
+
+  const isEnabled = Boolean(assignment.isEnabled);
+  const normalized = {
+    isEnabled,
+    title: assignment.title?.trim() || '',
+    description: assignment.description?.trim() || '',
+    dueDate: assignment.dueDate ? new Date(assignment.dueDate) : null,
+    allowFileUpload: assignment.allowFileUpload !== false,
+    allowGithubLink: Boolean(assignment.allowGithubLink),
+    allowResubmission: Boolean(assignment.allowResubmission),
+  };
+
+  if (!isEnabled) {
+    return normalized;
+  }
+
+  if (!normalized.title || !normalized.description) {
+    throw new Error('Assignment title and description are required when assignment is enabled');
+  }
+
+  if (!normalized.allowFileUpload && !normalized.allowGithubLink) {
+    throw new Error('Enable at least one assignment submission type');
+  }
+
+  if (normalized.dueDate && Number.isNaN(normalized.dueDate.getTime())) {
+    throw new Error('Invalid assignment due date');
+  }
+
+  return normalized;
 };
 
 export const programService = {
@@ -82,7 +185,15 @@ export const programService = {
 
     const program = await prisma.program.findUnique({
       where: { id: programId },
-      include: { modules: { orderBy: { order: 'asc' }, include: { lessons: { orderBy: { order: 'asc' } } } } },
+      include: {
+        modules: {
+          orderBy: { order: 'asc' },
+          include: {
+            lessons: { orderBy: { order: 'asc' } },
+            assignment: true,
+          },
+        },
+      },
     });
     if (!program) return null;
 
@@ -91,13 +202,30 @@ export const programService = {
       where: { userId, lessonId: { in: lessonIds } },
     });
     const completedLessons = progressRecords.filter(p => p.completed).map(p => p.lessonId);
-    return { program, enrollment, completedLessons };
+    return {
+      program: {
+        ...program,
+        modules: program.modules.map((module) => ({
+          ...module,
+          assignment: mapAssignmentForAdmin(module.assignment),
+        })),
+      },
+      enrollment,
+      completedLessons,
+    };
   },
 
   async getLessonById(lessonId: number, userId: number) {
     const lesson = await prisma.programLesson.findUnique({
       where: { id: lessonId },
-      include: { module: { include: { program: true } } },
+      include: {
+        module: {
+          include: {
+            program: true,
+            ...assignmentIncludeForStudent(userId),
+          },
+        },
+      },
     });
     if (!lesson) return null;
     const enrollment = await prisma.programEnrollment.findUnique({
@@ -107,7 +235,12 @@ export const programService = {
     const progress = await prisma.lessonProgress.findUnique({
       where: { userId_lessonId: { userId, lessonId } },
     });
-    return { lesson, completed: progress?.completed || false };
+
+    return {
+      lesson,
+      assignment: mapAssignmentForStudent(lesson.module.assignment),
+      completed: progress?.completed || false,
+    };
   },
 
   async markLessonComplete(userId: number, lessonId: number, completed: boolean) {
@@ -178,16 +311,108 @@ export const programService = {
   async getModules(programId: number) {
     return prisma.programModule.findMany({
       where: { programId }, orderBy: { order: 'asc' },
-      include: { lessons: { orderBy: { order: 'asc' } } },
+      include: { lessons: { orderBy: { order: 'asc' } }, assignment: true },
     });
   },
 
-  async createModule(data: { programId: number; title: string; description?: string; order?: number; isLocked?: boolean }) {
-    return prisma.programModule.create({ data });
+  async createModule(data: {
+    programId: number; title: string; description?: string; order?: number; isLocked?: boolean; assignment?: any;
+  }) {
+    const assignment = normalizeAssignmentInput(data.assignment);
+    const module = await prisma.programModule.create({
+      data: {
+        programId: data.programId,
+        title: data.title,
+        description: data.description,
+        order: data.order,
+        isLocked: data.isLocked,
+      },
+    });
+
+    if (assignment?.isEnabled) {
+      await prisma.programAssignment.create({
+        data: {
+          moduleId: module.id,
+          title: assignment.title,
+          description: assignment.description,
+          dueDate: assignment.dueDate,
+          allowFileUpload: assignment.allowFileUpload,
+          allowGithubLink: assignment.allowGithubLink,
+          allowResubmission: assignment.allowResubmission,
+          isEnabled: true,
+        },
+      });
+    }
+
+    const createdModule = await prisma.programModule.findUnique({
+      where: { id: module.id },
+      include: { lessons: { orderBy: { order: 'asc' } }, assignment: true },
+    });
+
+    if (!createdModule) {
+      throw new Error('Module could not be loaded after creation');
+    }
+
+    return createdModule;
   },
 
-  async updateModule(id: number, data: Partial<{ title: string; description: string; order: number; isLocked: boolean }>) {
-    return prisma.programModule.update({ where: { id }, data });
+  async updateModule(id: number, data: Partial<{
+    title: string; description: string; order: number; isLocked: boolean; assignment: any;
+  }>) {
+    const { assignment: assignmentInput, ...moduleData } = data;
+    const assignment = assignmentInput !== undefined ? normalizeAssignmentInput(assignmentInput) : undefined;
+
+    await prisma.programModule.update({ where: { id }, data: moduleData });
+
+    if (assignment !== undefined) {
+      const existingAssignment = await prisma.programAssignment.findUnique({ where: { moduleId: id } });
+
+      if (assignment?.isEnabled) {
+        if (existingAssignment) {
+          await prisma.programAssignment.update({
+            where: { moduleId: id },
+            data: {
+              title: assignment.title,
+              description: assignment.description,
+              dueDate: assignment.dueDate,
+              allowFileUpload: assignment.allowFileUpload,
+              allowGithubLink: assignment.allowGithubLink,
+              allowResubmission: assignment.allowResubmission,
+              isEnabled: true,
+            },
+          });
+        } else {
+          await prisma.programAssignment.create({
+            data: {
+              moduleId: id,
+              title: assignment.title,
+              description: assignment.description,
+              dueDate: assignment.dueDate,
+              allowFileUpload: assignment.allowFileUpload,
+              allowGithubLink: assignment.allowGithubLink,
+              allowResubmission: assignment.allowResubmission,
+              isEnabled: true,
+            },
+          });
+        }
+      } else if (existingAssignment) {
+        await prisma.programAssignment.update({
+          where: { moduleId: id },
+          data: { isEnabled: false },
+        });
+      }
+    }
+
+    const updatedModule = await prisma.programModule.findUnique({
+      where: { id },
+      include: { lessons: { orderBy: { order: 'asc' } }, assignment: true },
+    });
+
+    if (!updatedModule) {
+      throw new Error('Module could not be loaded after update');
+    }
+
+    return updatedModule;
   },
 
   async deleteModule(id: number) {
@@ -212,6 +437,216 @@ export const programService = {
 
   async deleteLesson(id: number) {
     return prisma.programLesson.delete({ where: { id } });
+  },
+
+  async submitAssignment(userId: number, assignmentId: number, payload: {
+    githubLink?: string;
+    file?: Express.Multer.File;
+  }) {
+    const assignment = await prisma.programAssignment.findUnique({
+      where: { id: assignmentId },
+      include: {
+        module: true,
+        submissions: {
+          where: { userId },
+          orderBy: { submittedAt: 'desc' },
+          take: 1,
+        },
+      },
+    });
+
+    if (!assignment || !assignment.isEnabled) {
+      throw new Error('Assignment not found');
+    }
+
+    const enrollment = await prisma.programEnrollment.findUnique({
+      where: {
+        userId_programId: {
+          userId,
+          programId: assignment.module.programId,
+        },
+      },
+    });
+
+    if (!enrollment) {
+      throw new Error('Not enrolled in this program');
+    }
+
+    const githubLink = payload.githubLink?.trim() || '';
+    const file = payload.file;
+
+    if (assignment.allowFileUpload && !assignment.allowGithubLink && !file) {
+      throw new Error('A file upload is required for this assignment');
+    }
+
+    if (!assignment.allowFileUpload && assignment.allowGithubLink && !githubLink) {
+      throw new Error('A GitHub repository link is required for this assignment');
+    }
+
+    if (!assignment.allowFileUpload && file) {
+      throw new Error('File upload is not enabled for this assignment');
+    }
+
+    if (!assignment.allowGithubLink && githubLink) {
+      throw new Error('GitHub repository link is not enabled for this assignment');
+    }
+
+    if (!file && !githubLink) {
+      throw new Error('Submit either a file, a GitHub repository link, or both');
+    }
+
+    if (githubLink && (!/^https?:\/\//i.test(githubLink) || !githubLink.includes('github.com'))) {
+      throw new Error('Enter a valid GitHub repository link');
+    }
+
+    if (assignment.submissions.length > 0 && !assignment.allowResubmission) {
+      throw new Error('This assignment has already been submitted');
+    }
+
+    let fileUrl: string | undefined;
+    let fileName: string | undefined;
+
+    if (file) {
+      const safeName = `assignment-${assignmentId}-${userId}-${Date.now()}-${file.originalname}`;
+      const upload = await uploadDocumentToCloudinary(file.buffer, 'programs/assignments', safeName);
+      fileUrl = upload.secure_url;
+      fileName = file.originalname;
+    }
+
+    const submission = await prisma.programAssignmentSubmission.create({
+      data: {
+        assignmentId,
+        moduleId: assignment.moduleId,
+        userId,
+        fileUrl,
+        fileName,
+        githubLink: githubLink || null,
+        status: 'submitted',
+      },
+      include: {
+        comments: { orderBy: { createdAt: 'asc' } },
+      },
+    });
+
+    return mapAssignmentSubmission(submission);
+  },
+
+  async getAssignmentSubmissionsForAdmin(programId: number, filters: { moduleId?: number; userId?: number }) {
+    const where: any = {
+      assignment: {
+        module: {
+          programId,
+        },
+      },
+    };
+
+    if (filters.moduleId) where.moduleId = filters.moduleId;
+    if (filters.userId) where.userId = filters.userId;
+
+    const submissions = await prisma.programAssignmentSubmission.findMany({
+      where,
+      orderBy: { submittedAt: 'desc' },
+      include: {
+        user: {
+          select: { id: true, name: true, email: true },
+        },
+        assignment: {
+          include: {
+            module: {
+              select: { id: true, title: true, programId: true },
+            },
+          },
+        },
+        comments: { orderBy: { createdAt: 'asc' } },
+      },
+    });
+
+    return submissions.map((submission) => ({
+      id: submission.id,
+      moduleId: submission.moduleId,
+      userId: submission.userId,
+      assignmentId: submission.assignmentId,
+      fileUrl: submission.fileUrl,
+      fileName: submission.fileName,
+      githubLink: submission.githubLink,
+      submittedAt: submission.submittedAt,
+      updatedAt: submission.updatedAt,
+      status: submission.status,
+      user: submission.user,
+      assignment: {
+        id: submission.assignment.id,
+        title: submission.assignment.title,
+        dueDate: submission.assignment.dueDate,
+      },
+      module: submission.assignment.module,
+      comments: submission.comments.map(mapAssignmentComment),
+    }));
+  },
+
+  async reviewAssignmentSubmission(submissionId: number, payload: { status: string; comment?: string }) {
+    const submission = await prisma.programAssignmentSubmission.findUnique({
+      where: { id: submissionId },
+    });
+
+    if (!submission) {
+      throw new Error('Assignment submission not found');
+    }
+
+    const nextStatus = payload.status?.trim() || 'reviewed';
+    const comment = payload.comment?.trim();
+
+    await prisma.$transaction(async (tx) => {
+      await tx.programAssignmentSubmission.update({
+        where: { id: submissionId },
+        data: { status: nextStatus },
+      });
+
+      if (comment) {
+        await tx.programAssignmentComment.create({
+          data: {
+            submissionId,
+            assignmentId: submission.assignmentId,
+            moduleId: submission.moduleId,
+            userId: submission.userId,
+            comment,
+          },
+        });
+      }
+    });
+
+    const updated = await prisma.programAssignmentSubmission.findUnique({
+      where: { id: submissionId },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        assignment: {
+          include: {
+            module: { select: { id: true, title: true, programId: true } },
+          },
+        },
+        comments: { orderBy: { createdAt: 'asc' } },
+      },
+    });
+
+    return {
+      id: updated!.id,
+      moduleId: updated!.moduleId,
+      userId: updated!.userId,
+      assignmentId: updated!.assignmentId,
+      fileUrl: updated!.fileUrl,
+      fileName: updated!.fileName,
+      githubLink: updated!.githubLink,
+      submittedAt: updated!.submittedAt,
+      updatedAt: updated!.updatedAt,
+      status: updated!.status,
+      user: updated!.user,
+      assignment: {
+        id: updated!.assignment.id,
+        title: updated!.assignment.title,
+        dueDate: updated!.assignment.dueDate,
+      },
+      module: updated!.assignment.module,
+      comments: updated!.comments.map(mapAssignmentComment),
+    };
   },
 
   // ── Enrollment ────────────────────────────────────────────────

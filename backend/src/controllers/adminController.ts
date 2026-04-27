@@ -251,8 +251,8 @@ export const adminController = {
 
   createModule: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const programId = parseInt(req.params.programId);
-    const { title, description, order, isLocked } = req.body;
-    const module = await programService.createModule({ programId, title, description, order, isLocked });
+    const { title, description, order, isLocked, assignment } = req.body;
+    const module = await programService.createModule({ programId, title, description, order, isLocked, assignment });
     logger.info('Module created by admin', { moduleId: module.id, programId });
     res.status(201).json({ success: true, message: 'Module created successfully', data: module });
   }),
@@ -261,6 +261,23 @@ export const adminController = {
     const id = parseInt(req.params.id);
     const module = await programService.updateModule(id, req.body);
     res.status(200).json({ success: true, message: 'Module updated successfully', data: module });
+  }),
+
+  getAssignmentSubmissions: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const programId = parseInt(req.params.programId);
+    const moduleId = req.query.moduleId ? parseInt(req.query.moduleId as string) : undefined;
+    const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
+    const submissions = await programService.getAssignmentSubmissionsForAdmin(programId, { moduleId, userId });
+    res.status(200).json({ success: true, data: submissions });
+  }),
+
+  reviewAssignmentSubmission: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const submissionId = parseInt(req.params.submissionId);
+    const submission = await programService.reviewAssignmentSubmission(submissionId, {
+      status: req.body.status,
+      comment: req.body.comment,
+    });
+    res.status(200).json({ success: true, message: 'Assignment submission reviewed', data: submission });
   }),
 
   deleteModule: asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
