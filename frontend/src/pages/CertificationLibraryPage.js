@@ -230,7 +230,7 @@ const CertificationLibraryPage = () => {
                             onClick={() => openProject(project)}
                             className="mt-4 h-[46px] w-full rounded-[8px] bg-[#F4C20D] text-[17px] font-bold text-[#111827]"
                           >
-                            {project.isEnrolled ? 'Continue Workspace' : 'Enroll Now'}
+                            {project.isEnrolled ? 'Continue Learning' : 'Enroll Now'}
                           </button>
                         </div>
                       </article>

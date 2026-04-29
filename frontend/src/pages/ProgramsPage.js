@@ -507,7 +507,7 @@ const ProgramCard = ({ program, onEnroll, saved, onSave }) => {
             </span>
             {access.endDate && (
               <p className="text-center text-xs font-medium text-[#6B7280]">
-                Access until {formatDisplayDate(access.endDate)}
+                {/* Access until {formatDisplayDate(access.endDate)} */}
               </p>
             )}
             <Link
@@ -521,7 +521,7 @@ const ProgramCard = ({ program, onEnroll, saved, onSave }) => {
           <div className="mt-auto pt-4">
             {access.expired && access.endDate ? (
               <p className="mb-2 text-center text-xs font-medium text-red-500">
-                Previous access ended on {formatDisplayDate(access.endDate)}
+                {/* Previous access ended on {formatDisplayDate(access.endDate)} */}
               </p>
             ) : null}
             <button
