@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { useAdmin, createAdminApi } from '../contexts/AdminContext';
 
-const DOMAINS = ['Engineering & Tech', 'Data Science', 'Business Management', 'Product Design', 'Marketing & Growth'];
 const LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
 const EMPTY_ASSIGNMENT = {
   isEnabled: false,
@@ -13,7 +12,7 @@ const EMPTY_ASSIGNMENT = {
   allowGithubLink: false,
   allowResubmission: false,
 };
-const EMPTY_PROGRAM = { title: '', description: '', domain: 'Engineering & Tech', level: 'Beginner', duration: '', thumbnail: '', instructor: '', price: '', isActive: true };
+const EMPTY_PROGRAM = { title: '', description: '', domain: '', level: 'Beginner', duration: '', thumbnail: '', instructor: '', price: '', isActive: true };
 const EMPTY_MODULE = { title: '', description: '', order: 0, isLocked: false, assignment: { ...EMPTY_ASSIGNMENT } };
 const EMPTY_LESSON = { title: '', description: '', duration: '', videoUrl: '', videoUrl360p: '', videoUrl480p: '', videoUrl720p: '', order: 0, keyTakeaway: '', resources: '[]' };
 const EMPTY_REVIEW = { status: 'reviewed', comment: '' };
@@ -156,7 +155,12 @@ const AdminProgramsPage = () => {
     setSaving(true);
     setError('');
     try {
-      const payload = { ...programForm, price: programForm.price ? parseInt(programForm.price) : 0 };
+      const payload = {
+        ...programForm,
+        domain: programForm.domain.trim(),
+        duration: programForm.duration.trim(),
+        price: programForm.price ? parseInt(programForm.price) : 0,
+      };
       if (editingProgram) {
         await adminApi.put(`/admin/programs/${editingProgram.id}`, payload);
       } else {
@@ -720,24 +724,29 @@ const AdminProgramsPage = () => {
                 placeholder="0"
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#E4B61A]" />
             </FormField>
-            {[
-              { label: 'Domain', key: 'domain', options: DOMAINS },
-              { label: 'Level', key: 'level', options: LEVELS },
-            ].map(({ label, key, options }) => (
-              <FormField key={key} label={label}>
-                <select value={programForm[key]} onChange={(e) => setProgramForm(p => ({ ...p, [key]: e.target.value }))}
-                  className="w-full bg-[#0a1220] border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#E4B61A]">
-                  {options.map(o => <option key={o}>{o}</option>)}
-                </select>
-              </FormField>
-            ))}
+            <FormField label="Domain">
+              <input
+                type="text"
+                required
+                value={programForm.domain}
+                onChange={(e) => setProgramForm((p) => ({ ...p, domain: e.target.value }))}
+                placeholder="e.g. Full Stack Development"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#E4B61A]"
+              />
+            </FormField>
+            <FormField label="Level">
+              <select value={programForm.level} onChange={(e) => setProgramForm(p => ({ ...p, level: e.target.value }))}
+                className="w-full bg-[#0a1220] border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#E4B61A]">
+                {LEVELS.map(o => <option key={o}>{o}</option>)}
+              </select>
+            </FormField>
             <FormField label="Duration">
               <input
                 type="text"
                 required
                 value={programForm.duration}
                 onChange={(e) => setProgramForm(p => ({ ...p, duration: e.target.value }))}
-                placeholder="e.g. 8 Weeks or 1-3 Months"
+                placeholder="e.g. 45 Days or 8 Weeks"
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#E4B61A]"
               />
             </FormField>

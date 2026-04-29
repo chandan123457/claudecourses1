@@ -511,6 +511,41 @@ export const certificationService = {
     };
   },
 
+  async verifyCertificate(certificateId: string) {
+    const verificationCode = String(certificateId || '').trim().toUpperCase();
+    if (!verificationCode) throw new Error('Certificate ID is required');
+
+    const certificate = await prisma.projectCertificate.findUnique({
+      where: { verificationCode },
+      include: {
+        user: {
+          select: {
+            name: true,
+          },
+        },
+        project: {
+          select: {
+            title: true,
+            domain: true,
+          },
+        },
+      },
+    });
+
+    if (!certificate) {
+      return null;
+    }
+
+    return {
+      certificateId: certificate.verificationCode,
+      userName: certificate.user.name,
+      program: certificate.project.title,
+      domain: certificate.project.domain,
+      issueDate: certificate.issuedAt,
+      certificateUrl: certificate.certificateUrl,
+    };
+  },
+
   async resolvePricing(projectId: number, planId: number, couponCode?: string) {
     await this.ensureSeedData();
 
@@ -939,6 +974,9 @@ export const certificationService = {
       });
 
       return booking;
+    }, {
+      maxWait: 10000,
+      timeout: 20000,
     });
   },
 

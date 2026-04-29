@@ -117,9 +117,8 @@ const HeroSection = () => {
             project-based validation and mentorship from top industry engineers.
           </p>
           <div className="flex flex-wrap justify-center gap-5 pt-4">
-            <a className="bg-primary text-secondary px-10 py-5 rounded-2xl font-black text-lg shadow-[0_10px_20px_-5px_rgba(228,182,26,0.4)] hover:shadow-[0_15px_30px_-5px_rgba(228,182,26,0.5)] transition-all hover:-translate-y-1 active:scale-95 cursor-pointer"
+            <button type="button" className="bg-primary text-secondary px-10 py-5 rounded-2xl font-black text-lg shadow-[0_10px_20px_-5px_rgba(228,182,26,0.4)] hover:shadow-[0_15px_30px_-5px_rgba(228,182,26,0.5)] transition-all hover:-translate-y-1 active:scale-95 cursor-pointer"
               onClick={(e) => {
-                e.preventDefault();
                 const element = document.querySelector('#training');
                 if (element) {
                   const headerOffset = 80;
@@ -127,7 +126,7 @@ const HeroSection = () => {
                   const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
                   window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
                 }
-              }}>Explore Programs</a>
+              }}>Explore Programs</button>
           </div>
           
         </div>

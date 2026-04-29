@@ -5,6 +5,7 @@ import { useDashboard } from '../contexts/DashboardContext';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
 import ErrorMessage from '../components/shared/ErrorMessage';
+import { formatDisplayDate, getProgramAccessState } from '../utils/programAccess';
 
 const DashboardPage = () => {
   const { dbUser } = useAuth();
@@ -217,7 +218,16 @@ const EmptyState = ({ message, action }) => (
 
 const ProgramCard = ({ enrollment }) => {
   const { program, progress = 0, status } = enrollment;
-  const isActive = status === 'active';
+  const access = getProgramAccessState(enrollment);
+  const canLearn = access.active;
+  const badgeLabel = access.expired ? 'Expired' : status === 'completed' ? 'Completed' : 'Active';
+  const badgeClass = access.expired
+    ? 'bg-red-100 text-red-700'
+    : status === 'completed'
+      ? 'bg-blue-100 text-blue-700'
+      : 'bg-green-100 text-green-700';
+  const ctaHref = canLearn ? `/programs/${program.id}/learn` : `/enroll/${program.id}/payment`;
+  const ctaLabel = canLearn ? (progress > 0 ? 'Continue Learning' : 'Start Learning') : 'Enroll Now';
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col gap-4 hover:shadow-sm transition-all h-full min-h-[224px]">
@@ -230,11 +240,9 @@ const ProgramCard = ({ enrollment }) => {
           </svg>
         </div>
         <span
-          className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-            isActive ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-          }`}
+          className={`text-xs font-semibold px-2.5 py-1 rounded-full ${badgeClass}`}
         >
-          {isActive ? 'Active' : 'New'}
+          {badgeLabel}
         </span>
       </div>
 
@@ -244,6 +252,11 @@ const ProgramCard = ({ enrollment }) => {
           {program.title}
         </h3>
         <p className="text-xs text-gray-400">{program.domain}</p>
+        {access.endDate && (
+          <p className="mt-1 text-xs text-gray-400">
+            Access until {formatDisplayDate(access.endDate)}
+          </p>
+        )}
       </div>
 
       {/* Progress bar */}
@@ -262,14 +275,14 @@ const ProgramCard = ({ enrollment }) => {
 
       {/* CTA button */}
       <Link
-        to={`/programs/${program.id}/learn`}
+        to={ctaHref}
         className={`block w-full text-center py-2.5 rounded-xl text-sm font-semibold transition-all ${
-          isActive
+          canLearn
             ? 'bg-yellow-400 text-gray-900 hover:bg-yellow-500'
             : 'border border-gray-200 text-gray-700 hover:bg-gray-50'
         }`}
       >
-        {progress > 0 ? 'Continue Learning' : 'Start Learning'}
+        {ctaLabel}
       </Link>
     </div>
   );

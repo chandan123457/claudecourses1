@@ -73,14 +73,17 @@ const Header = () => {
         {/* === DESKTOP NAVIGATION (Center) === */}
         {/* lg breakpoint starts at 1024px. Hidden completely below it. */}
         <div className="hidden lg:flex flex-1 items-center justify-center space-x-8 font-medium text-[15px]">
-          <a className="hover:text-primary transition-all duration-200 cursor-pointer" onClick={handleHomeClick}>
+          <button type="button" className="hover:text-primary transition-all duration-200 cursor-pointer" onClick={handleHomeClick}>
             Home
-          </a>
+          </button>
           <Link to="/programs" className="hover:text-primary transition-all duration-200 cursor-pointer">
             Training Programs
           </Link>
           <Link to="/webinars" className="hover:text-primary transition-all duration-200 cursor-pointer">
             Webinars
+          </Link>
+          <Link to="/verify-certificate" className="hover:text-primary transition-all duration-200 cursor-pointer">
+            Verify Your Certificate
           </Link>
         </div>
 
@@ -174,12 +177,13 @@ const Header = () => {
         }`}
       >
         <div className="container mx-auto px-6 py-6 flex flex-col gap-5">
-          <a
+          <button
+            type="button"
             className="flex items-center text-lg font-bold text-gray-800 hover:text-primary hover:translate-x-2 transition-all cursor-pointer"
             onClick={handleHomeClick}
           >
             Home
-          </a>
+          </button>
           <div className="h-[1px] w-full bg-gray-100" />
           <Link 
             to="/programs" 
@@ -195,6 +199,14 @@ const Header = () => {
             onClick={() => setIsMobileMenuOpen(false)}
           >
             Webinars
+          </Link>
+          <div className="h-[1px] w-full bg-gray-100" />
+          <Link 
+            to="/verify-certificate" 
+            className="flex items-center text-lg font-bold text-gray-800 hover:text-primary hover:translate-x-2 transition-all cursor-pointer"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            Verify Your Certificate
           </Link>
         </div>
       </div>

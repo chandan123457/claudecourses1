@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import prisma from '../db/prisma';
 import { verifyRazorpaySignature } from '../utils/razorpay';
 import { uploadDocumentToCloudinary } from '../utils/imageUpload';
+import { getProgramAccessMeta } from '../utils/programAccess';
 
 let razorpay: Razorpay | null = null;
 const getRazorpay = () => {
@@ -117,6 +118,28 @@ const normalizeAssignmentInput = (assignment?: any) => {
   return normalized;
 };
 
+const withEnrollmentAccess = (enrollment: any, durationLabel?: string | null) => {
+  if (!enrollment) return enrollment;
+  return {
+    ...enrollment,
+    ...getProgramAccessMeta(enrollment.enrolledAt, durationLabel ?? enrollment.program?.duration),
+  };
+};
+
+const ensureEnrollmentAccess = (enrollment: any, durationLabel?: string | null) => {
+  if (!enrollment) return null;
+
+  const accessMeta = getProgramAccessMeta(enrollment.enrolledAt, durationLabel ?? enrollment.program?.duration);
+  if (!accessMeta.accessActive) {
+    throw new Error('Program access has expired. Please enroll again to continue learning.');
+  }
+
+  return {
+    ...enrollment,
+    ...accessMeta,
+  };
+};
+
 export const programService = {
   async getPrograms(filters: {
     domain?: string; level?: string; duration?: string; search?: string;
@@ -149,17 +172,40 @@ export const programService = {
       prisma.program.count({ where }),
     ]);
 
-    let enrolledProgramIds = new Set<number>();
+    let enrollmentMap = new Map<number, any>();
     if (userId) {
       const enrollments = await prisma.programEnrollment.findMany({
         where: { userId, programId: { in: programs.map(p => p.id) } },
-        select: { programId: true },
+        select: {
+          id: true,
+          programId: true,
+          enrolledAt: true,
+          progress: true,
+          status: true,
+          program: {
+            select: {
+              duration: true,
+            },
+          },
+        },
       });
-      enrolledProgramIds = new Set(enrollments.map(e => e.programId));
+      enrollmentMap = new Map(enrollments.map((enrollment) => [enrollment.programId, withEnrollmentAccess(enrollment)]));
     }
 
     return {
-      programs: programs.map(p => ({ ...p, isEnrolled: enrolledProgramIds.has(p.id) })),
+      programs: programs.map((program) => {
+        const enrollment = enrollmentMap.get(program.id);
+        return {
+          ...program,
+          isEnrolled: Boolean(enrollment?.accessActive),
+          hasEnrollmentHistory: Boolean(enrollment),
+          accessActive: enrollment?.accessActive ?? false,
+          accessExpired: enrollment?.accessExpired ?? false,
+          accessEndDate: enrollment?.accessEndDate ?? null,
+          accessDaysRemaining: enrollment?.accessDaysRemaining ?? null,
+          enrollmentProgress: enrollment?.progress ?? 0,
+        };
+      }),
       pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
     };
   },
@@ -178,11 +224,6 @@ export const programService = {
   },
 
   async getProgramContent(programId: number, userId: number) {
-    const enrollment = await prisma.programEnrollment.findUnique({
-      where: { userId_programId: { userId, programId } },
-    });
-    if (!enrollment) return null;
-
     const program = await prisma.program.findUnique({
       where: { id: programId },
       include: {
@@ -197,6 +238,12 @@ export const programService = {
     });
     if (!program) return null;
 
+    const enrollment = await prisma.programEnrollment.findUnique({
+      where: { userId_programId: { userId, programId } },
+    });
+    const activeEnrollment = ensureEnrollmentAccess(enrollment, program.duration);
+    if (!activeEnrollment) return null;
+
     const lessonIds = program.modules.flatMap(m => m.lessons.map(l => l.id));
     const progressRecords = await prisma.lessonProgress.findMany({
       where: { userId, lessonId: { in: lessonIds } },
@@ -210,7 +257,7 @@ export const programService = {
           assignment: mapAssignmentForAdmin(module.assignment),
         })),
       },
-      enrollment,
+      enrollment: activeEnrollment,
       completedLessons,
     };
   },
@@ -231,7 +278,8 @@ export const programService = {
     const enrollment = await prisma.programEnrollment.findUnique({
       where: { userId_programId: { userId, programId: lesson.module.programId } },
     });
-    if (!enrollment) return null;
+    const activeEnrollment = ensureEnrollmentAccess(enrollment, lesson.module.program.duration);
+    if (!activeEnrollment) return null;
     const progress = await prisma.lessonProgress.findUnique({
       where: { userId_lessonId: { userId, lessonId } },
     });
@@ -244,6 +292,30 @@ export const programService = {
   },
 
   async markLessonComplete(userId: number, lessonId: number, completed: boolean) {
+    const lessonRecord = await prisma.programLesson.findUnique({
+      where: { id: lessonId },
+      include: {
+        module: {
+          include: {
+            program: {
+              select: {
+                id: true,
+                duration: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!lessonRecord) {
+      throw new Error('Lesson not found');
+    }
+
+    const existingEnrollment = await prisma.programEnrollment.findUnique({
+      where: { userId_programId: { userId, programId: lessonRecord.module.programId } },
+    });
+    ensureEnrollmentAccess(existingEnrollment, lessonRecord.module.program.duration);
+
     const result = await prisma.lessonProgress.upsert({
       where: { userId_lessonId: { userId, lessonId } },
       update: { completed, watchedAt: new Date() },
@@ -446,7 +518,15 @@ export const programService = {
     const assignment = await prisma.programAssignment.findUnique({
       where: { id: assignmentId },
       include: {
-        module: true,
+        module: {
+          include: {
+            program: {
+              select: {
+                duration: true,
+              },
+            },
+          },
+        },
         submissions: {
           where: { userId },
           orderBy: { submittedAt: 'desc' },
@@ -471,6 +551,7 @@ export const programService = {
     if (!enrollment) {
       throw new Error('Not enrolled in this program');
     }
+    ensureEnrollmentAccess(enrollment, assignment.module.program.duration);
 
     const githubLink = payload.githubLink?.trim() || '';
     const file = payload.file;
@@ -653,14 +734,42 @@ export const programService = {
   async enrollUser(userId: number, programId: number) {
     const existing = await prisma.programEnrollment.findUnique({
       where: { userId_programId: { userId, programId } },
+      include: { program: true },
     });
-    if (existing) return existing;
+    if (existing) {
+      const accessMeta = getProgramAccessMeta(existing.enrolledAt, existing.program?.duration);
+      if (accessMeta.accessActive) {
+        return withEnrollmentAccess(existing);
+      }
+
+      const renewedEnrollment = await prisma.programEnrollment.update({
+        where: { id: existing.id },
+        data: {
+          enrolledAt: new Date(),
+          status: existing.progress >= 100 ? 'completed' : 'active',
+        },
+        include: { program: true },
+      });
+      return withEnrollmentAccess(renewedEnrollment);
+    }
     return prisma.programEnrollment.create({
       data: { userId, programId }, include: { program: true },
-    });
+    }).then((enrollment) => withEnrollmentAccess(enrollment));
   },
 
   async updateProgress(userId: number, programId: number, progress: number, currentModule?: string) {
+    const enrollment = await prisma.programEnrollment.findUnique({
+      where: { userId_programId: { userId, programId } },
+      include: {
+        program: {
+          select: {
+            duration: true,
+          },
+        },
+      },
+    });
+    ensureEnrollmentAccess(enrollment);
+
     return prisma.programEnrollment.update({
       where: { userId_programId: { userId, programId } },
       data: { progress, currentModule, status: progress >= 100 ? 'completed' : 'active' },
@@ -668,9 +777,10 @@ export const programService = {
   },
 
   async getUserEnrollments(userId: number) {
-    return prisma.programEnrollment.findMany({
+    const enrollments = await prisma.programEnrollment.findMany({
       where: { userId }, include: { program: true }, orderBy: { enrolledAt: 'desc' },
     });
+    return enrollments.map((enrollment) => withEnrollmentAccess(enrollment));
   },
 
   // ── Program Payment ───────────────────────────────────────────
@@ -683,7 +793,9 @@ export const programService = {
       const existing = await prisma.programEnrollment.findUnique({
         where: { userId_programId: { userId, programId } },
       });
-      if (existing) throw new Error('Already enrolled in this program');
+      if (existing && getProgramAccessMeta(existing.enrolledAt, program.duration).accessActive) {
+        throw new Error('Already enrolled in this program');
+      }
     }
 
     const razorpayOrder = await getRazorpay().orders.create({
@@ -741,7 +853,10 @@ export const programService = {
       if (order.userId) {
         await tx.programEnrollment.upsert({
           where: { userId_programId: { userId: order.userId, programId: order.programId } },
-          update: {},
+          update: {
+            enrolledAt: new Date(),
+            status: 'active',
+          },
           create: { userId: order.userId, programId: order.programId },
         });
       }
@@ -776,10 +891,13 @@ export const programService = {
 
       return tx.programEnrollment.upsert({
         where: { userId_programId: { userId, programId: order.programId } },
-        update: {},
+        update: {
+          enrolledAt: new Date(),
+          status: 'active',
+        },
         create: { userId, programId: order.programId },
         include: { program: true },
-      });
+      }).then((enrollment) => withEnrollmentAccess(enrollment));
     });
   },
 

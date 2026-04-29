@@ -28,6 +28,7 @@ import CourseContentPage from './pages/CourseContentPage';
 import CertificationLibraryPage from './pages/CertificationLibraryPage';
 import CertificationProgramPage from './pages/CertificationProgramPage';
 import CertificationWorkspacePage from './pages/CertificationWorkspacePage';
+import CertificateVerificationPage from './pages/CertificateVerificationPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
@@ -65,6 +66,7 @@ function App() {
                 <Route path="/auth" element={<><Header /><main><AuthPage /></main></>} />
                 <Route path="/courses" element={<Navigate to="/programs" replace />} />
                 <Route path="/webinars" element={<><Header /><main><WebinarsPage /></main></>} />
+                <Route path="/verify-certificate" element={<><Header /><main><CertificateVerificationPage /></main><Footer /></>} />
 
                 {/* ── Protected User Routes ── */}
                 <Route path="/welcome" element={

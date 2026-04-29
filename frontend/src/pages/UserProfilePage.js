@@ -3,6 +3,7 @@ import { useDashboard } from '../contexts/DashboardContext';
 import { useAuth } from '../contexts/AuthContext';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
+import { formatDisplayDate, getProgramAccessState } from '../utils/programAccess';
 
 const UserProfilePage = () => {
   const { profileData, profileLoading, fetchProfile, updateProfile } = useDashboard();
@@ -59,6 +60,7 @@ const UserProfilePage = () => {
     skillBadges = [],
     eligibility,
     readiness,
+    programEnrollments = [],
   } = profileData || {};
 
   const overallScore = readiness?.overallScore || 0;
@@ -409,10 +411,61 @@ const UserProfilePage = () => {
                 </div>
               )}
             </div>
+
+            <div className="bg-white rounded-2xl border border-gray-100 p-6">
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h2 className="text-sm font-bold text-gray-900">My Programs</h2>
+                  <p className="text-xs text-gray-400 mt-1">Program name with course completion deadline</p>
+                </div>
+                <span className="text-xs font-semibold text-gray-400">
+                  {programEnrollments.length} total
+                </span>
+              </div>
+
+              {programEnrollments.length === 0 ? (
+                <p className="text-sm text-gray-400">No programs enrolled yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {programEnrollments.map((enrollment) => (
+                    <ProgramEnrollmentRow key={enrollment.id} enrollment={enrollment} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
     </DashboardLayout>
+  );
+};
+
+const ProgramEnrollmentRow = ({ enrollment }) => {
+  const access = getProgramAccessState(enrollment);
+  const badgeClass = access.expired ? 'bg-red-50 text-red-600 border-red-100' : 'bg-green-50 text-green-700 border-green-100';
+
+  return (
+    <div className="rounded-2xl border border-gray-100 px-4 py-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-gray-900">{enrollment.program?.title || 'Program'}</p>
+          <p className="text-xs text-gray-400 mt-1">
+            {enrollment.program?.domain || 'General'} · Enrolled {formatDisplayDate(enrollment.enrolledAt)}
+          </p>
+        </div>
+        <span className={`inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-semibold ${badgeClass}`}>
+          {access.expired ? 'Expired' : 'Active'}
+        </span>
+      </div>
+      <div className="mt-3 grid grid-cols-1 gap-3 text-xs text-gray-500 sm:grid-cols-2">
+        <div className="rounded-xl bg-gray-50 px-3 py-2">
+          Completion deadline: {formatDisplayDate(access.endDate)}
+        </div>
+        <div className="rounded-xl bg-gray-50 px-3 py-2">
+          Progress: {Math.round(enrollment.progress || 0)}%
+        </div>
+      </div>
+    </div>
   );
 };
 

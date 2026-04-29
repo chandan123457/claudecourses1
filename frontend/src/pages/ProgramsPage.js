@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useDashboard } from '../contexts/DashboardContext';
 import DashboardLayout from '../components/dashboard/DashboardLayout';
 import LoadingSpinner from '../components/shared/LoadingSpinner';
+import { formatDisplayDate, getProgramAccessState } from '../utils/programAccess';
 
 const PAGE_SIZE = 6;
 
@@ -437,7 +438,8 @@ const ActiveChip = ({ label, onRemove }) => (
 
 const ProgramCard = ({ program, onEnroll, saved, onSave }) => {
   const style = DOMAIN_CARD_COLORS[program.domain] || { gradient: 'from-[#8792A2] to-[#B0B8C2]', badge: 'Program' };
-  const isEnrolled = program.isEnrolled;
+  const access = getProgramAccessState(program);
+  const isEnrolled = Boolean(program.isEnrolled && access.active);
 
   return (
     <article className="flex min-h-[500px] flex-col overflow-hidden rounded-[10px] border border-[#DCE2EA] bg-white shadow-[0_4px_18px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_26px_rgba(15,23,42,0.12)]">
@@ -503,6 +505,11 @@ const ProgramCard = ({ program, onEnroll, saved, onSave }) => {
               </svg>
               Enrolled
             </span>
+            {access.endDate && (
+              <p className="text-center text-xs font-medium text-[#6B7280]">
+                Access until {formatDisplayDate(access.endDate)}
+              </p>
+            )}
             <Link
               to={`/programs/${program.id}/learn`}
               className="flex h-[46px] items-center justify-center rounded-[8px] bg-[#F4C20D] text-[17px] font-bold text-[#111827] transition-all hover:brightness-95"
@@ -511,12 +518,19 @@ const ProgramCard = ({ program, onEnroll, saved, onSave }) => {
             </Link>
           </div>
         ) : (
-          <button
-            onClick={() => onEnroll(program.id)}
-            className="mt-auto h-[46px] w-full rounded-[8px] bg-[#F4C20D] text-[17px] font-bold text-[#111827] transition-all hover:brightness-95"
-          >
-            Enroll Now
-          </button>
+          <div className="mt-auto pt-4">
+            {access.expired && access.endDate ? (
+              <p className="mb-2 text-center text-xs font-medium text-red-500">
+                Previous access ended on {formatDisplayDate(access.endDate)}
+              </p>
+            ) : null}
+            <button
+              onClick={() => onEnroll(program.id)}
+              className="h-[46px] w-full rounded-[8px] bg-[#F4C20D] text-[17px] font-bold text-[#111827] transition-all hover:brightness-95"
+            >
+              Enroll Now
+            </button>
+          </div>
         )}
       </div>
     </article>

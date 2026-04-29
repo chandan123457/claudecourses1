@@ -1,4 +1,5 @@
 import prisma from '../db/prisma';
+import { getProgramAccessMeta } from '../utils/programAccess';
 
 export const dashboardService = {
   async getDashboardData(userId: number) {
@@ -19,6 +20,7 @@ export const dashboardService = {
               id: true,
               title: true,
               domain: true,
+              duration: true,
               thumbnail: true,
               instructor: true,
             },
@@ -74,7 +76,10 @@ export const dashboardService = {
     ]);
 
     return {
-      enrolledPrograms: programEnrollments,
+      enrolledPrograms: programEnrollments.map((enrollment) => ({
+        ...enrollment,
+        ...getProgramAccessMeta(enrollment.enrolledAt, enrollment.program?.duration),
+      })),
       certifications,
       eligibility,
       upcomingInterviews: [

@@ -7,6 +7,8 @@ const router = express.Router();
 
 router.get('/projects', optionalAuthenticate, certificationController.getProjects);
 router.get('/projects/:identifier', optionalAuthenticate, certificationController.getProject);
+router.get('/verify', certificationController.verifyCertificate);
+router.get('/verify/:certificateId', certificationController.verifyCertificate);
 router.post('/apply-coupon', certificationController.applyCoupon);
 router.post('/create-order', authenticate, certificationController.createOrder);
 router.post('/verify-payment', certificationController.verifyPayment);
@@ -16,4 +18,3 @@ router.post('/workspace/:enrollmentId/submissions', authenticate, certificationC
 router.post('/workspace/:enrollmentId/book-session', authenticate, certificationController.bookSession);
 
 export default router;
-

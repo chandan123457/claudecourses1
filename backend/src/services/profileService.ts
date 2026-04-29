@@ -1,8 +1,9 @@
 import prisma from '../db/prisma';
+import { getProgramAccessMeta } from '../utils/programAccess';
 
 export const profileService = {
   async getFullProfile(userId: number) {
-    const [user, profile, certifications, skillBadges, eligibility, programStats] =
+    const [user, profile, certifications, skillBadges, eligibility, programStats, programEnrollments, courseEnrollments] =
       await Promise.all([
         prisma.user.findUnique({
           where: { id: userId },
@@ -24,6 +25,36 @@ export const profileService = {
           _count: true,
           _avg: { progress: true },
         }),
+        prisma.programEnrollment.findMany({
+          where: { userId },
+          orderBy: { enrolledAt: 'desc' },
+          include: {
+            program: {
+              select: {
+                id: true,
+                title: true,
+                domain: true,
+                duration: true,
+                instructor: true,
+              },
+            },
+          },
+        }),
+        prisma.courseEnrollment.findMany({
+          where: { userId },
+          orderBy: { enrolledAt: 'desc' },
+          include: {
+            course: {
+              select: {
+                id: true,
+                title: true,
+                teacher: true,
+                startDate: true,
+                endDate: true,
+              },
+            },
+          },
+        }),
       ]);
 
     const technicalScore = eligibility?.technicalScore ?? 0;
@@ -40,6 +71,11 @@ export const profileService = {
       certifications,
       skillBadges,
       eligibility,
+      programEnrollments: programEnrollments.map((enrollment) => ({
+        ...enrollment,
+        ...getProgramAccessMeta(enrollment.enrolledAt, enrollment.program?.duration),
+      })),
+      courseEnrollments,
       readiness: {
         totalEnrolled: programStats._count,
         avgProgress,

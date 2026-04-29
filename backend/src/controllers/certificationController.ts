@@ -32,6 +32,16 @@ export const certificationController = {
     res.status(200).json({ success: true, data: project });
   }),
 
+  verifyCertificate: asyncHandler(async (req: Request, res: Response) => {
+    const certificateId = String(req.query.certificateId || req.params.certificateId || '').trim();
+    if (!certificateId) throw new AppError('certificateId is required', 400);
+
+    const certificate = await certificationService.verifyCertificate(certificateId);
+    if (!certificate) throw new AppError('Certificate not found', 404);
+
+    res.status(200).json({ success: true, data: certificate });
+  }),
+
   applyCoupon: asyncHandler(async (req: Request, res: Response) => {
     const projectId = toNumber(req.body.projectId, 'projectId');
     const planId = toNumber(req.body.planId, 'planId');
