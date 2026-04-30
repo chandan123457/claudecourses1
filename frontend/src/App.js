@@ -6,6 +6,7 @@ import { DashboardProvider } from './contexts/DashboardContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
+import AboutUsPage from './pages/AboutUsPage';
 import WebinarsPage from './pages/WebinarsPage';
 import WebinarDetailPage from './pages/WebinarDetailPage';
 import AuthPage from './pages/AuthPage';
@@ -29,6 +30,8 @@ import CertificationLibraryPage from './pages/CertificationLibraryPage';
 import CertificationProgramPage from './pages/CertificationProgramPage';
 import CertificationWorkspacePage from './pages/CertificationWorkspacePage';
 import CertificateVerificationPage from './pages/CertificateVerificationPage';
+import TermsOfServicePage from './pages/TermsOfServicePage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 import { useAuth } from './contexts/AuthContext';
@@ -63,6 +66,9 @@ function App() {
               <Routes>
                 {/* ── Public Routes ── */}
                 <Route path="/" element={<><Header /><main><HomePage /></main><Footer /></>} />
+                <Route path="/about-us" element={<><Header /><main><AboutUsPage /></main><Footer /></>} />
+                <Route path="/terms-of-service" element={<><Header /><main><TermsOfServicePage /></main><Footer /></>} />
+                <Route path="/privacy-policy" element={<><Header /><main><PrivacyPolicyPage /></main><Footer /></>} />
                 <Route path="/auth" element={<><Header /><main><AuthPage /></main></>} />
                 <Route path="/courses" element={<Navigate to="/programs" replace />} />
                 <Route path="/webinars" element={<><Header /><main><WebinarsPage /></main></>} />
