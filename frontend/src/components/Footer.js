@@ -20,7 +20,7 @@ const Footer = () => {
               <li><span className="hover:text-primary">Certifications</span></li>
               <li><span className="hover:text-primary">Training Programs</span></li>
             <li><span className="hover:text-primary">Mock Interviews</span></li>
-            <li><span className="hover:text-primary">Placement Portal</span></li>
+            <li><span className="hover:text-primary">Webiners</span></li>
             </ul>
           </div>
           <div>
